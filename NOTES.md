@@ -2,7 +2,8 @@
 
 Status: **2026-11-24, phase 2a complete + 5-variant comparison done + v6
 merged submission version built (default) + cloud model fix
-(gemini-3.8-flash, 2026-11-24).**
+(gemini-3.8-flash, 2026-11-24) + friendly AI error messages + 5-round
+full-suite testing (2026-11-24 evening).**
 Phase 1 (mock provider, fully working app) is done and verified; phase 2a
 wired in the real Firebase AI Logic provider + App Check (see "Phase 2a"
 below); the 5 UI variants are built and compared (see "5-variant
@@ -12,9 +13,13 @@ merged submission version"). A live production test on 2026-11-24 (V1
 build on mindvault-2026.web.app) verified load, the consent modal, and
 App Check — but cloud calls 404'd because Google had retired
 gemini-2.5-flash for new users; the cloud model is now
-gemini-3.8-flash (see "Cloud model change" below). Live re-verification
-of the new model on the production domain is still pending after
-redeploy. This file records what is mock vs real, what phase 2 needs,
+gemini-3.8-flash (see "Cloud model change" below). The production
+re-verification of the new model (19:57) passed the v6 UI and the
+consent flow, but cloud calls hit Google-side overload (500 "high
+demand" ×4, one 429 free-tier limit of 5 requests/minute) — no live
+cloud call has succeeded end to end yet; a retry is scheduled for
+21:00 the same evening. This file records what is mock vs real, what
+phase 2 needs,
 known limitations, and the 5-variant proposal required by the standing
 rule (at least 5 substantially different versions, compared and tested,
 before settling).
@@ -139,17 +144,23 @@ with no regressions; lint 0 errors (same 10 documented warnings).
       domain only. Debug token for local testing only, never committed.
 - [x] `VITE_AI_PROVIDER=firebase`; provider switch verified (mock
       banner absent, no init error, graceful degradation confirmed).
-- [ ] Register the App Check debug token in the console (value held by
-      the parent agent — not in any file).
+- [x] Register the App Check debug token in the console — DONE
+      2026-11-24 19:12 (value held by the parent agent — not in any
+      file).
 - [ ] Verify the cloud consent flow + on-device states against the REAL
       models in a networked browser (blocked in this VM's headless
-      browser — see "Sandbox network limitation" above).
+      browser — see "Sandbox network limitation" above). PARTIAL
+      2026-11-24: consent modal + App Check verified on the live
+      domain; a successful live cloud call is still pending (Google
+      500/429 overload at re-test, retry 21:00); on-device states
+      still need a compliant Chrome.
 - [ ] Real-device test matrix: Chrome 139+ with Prompt API enabled
       (on-device available), Chrome without the flag / older Chrome
       (unavailable state + guidance), and a non-Chrome browser
       (unavailable state — the app must still work as a notes app).
-- [ ] Deploy to Firebase Hosting (or another static host) and verify on
-      the real domain, including App Check enforcement.
+- [x] Deploy to Firebase Hosting — DONE 2026-11-24 (V1 19:44, v6
+      redeployed 19:52, https://mindvault-2026.web.app); App Check
+      enforcement verified on the live domain.
 - [x] Build + compare the 5 variants below; pick the strongest (or a
       hybrid) by the judging criteria. — DONE 2026-11-24, see "5-variant
       comparison (results)". Recommendation: merge V5 (vault home) +
@@ -549,7 +560,90 @@ navigation (~100 lines):
 - Still open: live cloud calls with gemini-3.8-flash must be
   re-verified on the production domain after redeploy — this VM's
   headless browser has no internet, so the new model name is verified
-  by build + grep only until then.
+  by build + grep only until then. (Update 19:57: re-verification ran
+  — 404 gone, but Google returned 500 "high demand" ×4 and one 429
+  free-tier limit of 5 requests/minute; retry scheduled 21:00.)
+
+## Friendly AI error messages (2026-11-24 evening)
+
+The production tests showed the raw SDK errors in the app's red alert
+box — e.g. a 400-character 429 string with quota URLs. `AiPanel` now
+renders a short friendly message instead, via `src/lib/errors.ts`
+(`friendlyAiError`):
+
+- 429 / quota / rate-limit → "Google's free tier is rate-limited —
+  please wait a minute and try again."
+- 500 / 503 / "high demand" / "overload" → "Google's service is busy
+  right now — please try again in a bit."
+- Everything else (404, network errors, unknown) passes through raw,
+  unchanged.
+
+The exact raw error stays inspectable behind a "Details" toggle
+(shown only when a friendly mapping applied), so verification and
+debugging never lose the real error. The success path is untouched —
+only the error display changed. Verified with a direct node check
+(`../check-errors.mjs`, outside the repo): 11/11 pass, including the
+exact 429 and 500 strings from the 2026-11-24 production tests. Note:
+mock mode cannot produce real provider errors, so the new messages
+need live verification on the production domain (e.g. during the
+21:00 cloud retry, if a 429/500 recurs).
+
+## Multi-round testing + gap audit (2026-11-24 evening)
+
+### Five rounds of the full suite (v6, default)
+
+Each round = firebase build + mock build + smoke 17/17 + v6
+walkthrough 23/23 + test:db + lint. Rounds run one at a time on the
+shared VM (~1.5 cores / 6 GB). Round 3's first attempt was interrupted
+by a service restart (which also wiped /tmp, including the round
+script and rounds 1–2 logs — results below were captured in the
+working record); the round was re-run cleanly from a script kept in
+the project dir (`../run-round.sh`, logs in `../round-logs/`).
+
+| Round | Firebase build | Mock build | Smoke | Walkthrough v6 | test:db | Lint |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|
+| 1 | pass 492.85 KB | pass 447.55 KB | 17/17 | 23/23 | pass | 0 errors, 9 warnings |
+| 2 | pass | pass | 17/17 | 23/23 | pass | 0 errors, 9 warnings |
+| 3 | pass | pass | 17/17 | 23/23 | pass | 0 errors, 9 warnings |
+| 4 | pass | pass | 17/17 | 23/23 | pass | 0 errors, 9 warnings |
+| 5 | pass | pass | 17/17 | 23/23 | pass | 0 errors, 9 warnings |
+
+Zero failures, zero flakes across all five rounds. Bundle hashes
+were identical every round (firebase `index-Be-S6NhN.js`, mock
+`index-D2psjJaq.js`) — builds are deterministic.
+
+### Gap audit vs RESEARCH.md winner patterns
+
+Checked and good (no action): all four on-device states + unknown
+with progress aria and graceful degradation; consent modal (model
+name, exact content, char count, checkbox-gated, Esc/backdrop cancel,
+dialog semantics); empty states (notes, vault, mood timeline);
+loading state; mock + init-error banners; tabs as real buttons with
+`aria-current`; footer credits Firebase AI Logic; photo describe
+on-device; index.html title/meta/lang; privacy score + ledger +
+per-entry controls; seeded (sample) data; PWA.
+
+- **Fixed in this pass:** friendly AI error messages (above); README
+  phase-2a status block updated to the 2026-11-24 evening reality;
+  ARCHITECTURE.md bundle sizes corrected (were stale phase-1 numbers);
+  phase-2 checklist updated (debug token + deploy done, consent-flow
+  verification partial).
+- **Nice-to-have, deliberately not built:** a "How MindVault works"
+  explainer strip on the Vault home — the home already carries the
+  pitch ("100% of sensitive insights stayed on this device" + the
+  architecture paragraph); adding more text risks cluttering the
+  winning first screen.
+- **Bigger gap, deferred with reason:** cross-note cloud synthesis
+  (e.g. an authorized monthly review across entries — RESEARCH.md
+  §4 suggestion). It would need a new cloud path + multi-note consent
+  design + testing, with 6 days to the deadline and the free tier at
+  5 requests/minute; the current differentiation (verifiable privacy,
+  ledger, per-request consent, structured mood timeline) is already
+  strong. Revisit only if time remains after video + submission.
+- **Known, parent's steps:** remove v1–v5 from the bundle before
+  submission; demo video; GitHub + Devpost; real on-device
+  verification in compliant Chrome; full-notes export (documented
+  nice-to-have, limitation #2).
 
 ### Test results (5-variant comparison, 2026-11-24)
 

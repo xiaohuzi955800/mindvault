@@ -3,6 +3,7 @@
  * (deep summary + writing suggestions). Every result wears its source badge.
  */
 import type { Note } from '../lib/db';
+import { friendlyAiError } from '../lib/errors';
 import { formatDateTime } from '../lib/format';
 import type { useDeviceModel } from '../hooks/useDeviceModel';
 import { OnDevicePanel } from './OnDevicePanel';
@@ -27,6 +28,31 @@ function ResultMeta({ model, createdAt }: { model: string; createdAt: number }) 
     <p className="mt-1 text-[11px] text-stone-400">
       {model} · {formatDateTime(createdAt)}
     </p>
+  );
+}
+
+/**
+ * AI error display: a short friendly message for transient failures
+ * (rate limits, service overload), with the exact raw error behind a
+ * "Details" toggle so it stays inspectable. Unmapped errors show raw,
+ * as before.
+ */
+function AiErrorMessage({ error }: { error: string }) {
+  const friendly = friendlyAiError(error);
+  return (
+    <div className="rounded-xl bg-red-50 p-3 text-sm text-red-800" role="alert">
+      <p>{friendly.message}</p>
+      {friendly.friendly && (
+        <details className="mt-1">
+          <summary className="cursor-pointer text-xs font-medium text-red-700">
+            Details
+          </summary>
+          <p className="mt-1 text-xs break-words text-red-700/90">
+            {friendly.raw}
+          </p>
+        </details>
+      )}
+    </div>
   );
 }
 
@@ -59,11 +85,7 @@ export function AiPanel({
         onSetSimulated={device.setSimulated}
       />
 
-      {error && (
-        <p className="rounded-xl bg-red-50 p-3 text-sm text-red-800" role="alert">
-          {error}
-        </p>
-      )}
+      {error && <AiErrorMessage error={error} />}
 
       <section
         aria-label="On-device insights"

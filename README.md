@@ -8,15 +8,21 @@ per-request approval**. Every AI result wears an **ON-DEVICE / IN-CLOUD**
 badge, and a **Privacy Ledger** records every AI action so you can *see*
 that nothing sensitive left the device.
 
-> **Phase 2a status (2026-11-24):** the real Firebase AI Logic provider is
+> **Status (2026-11-24 evening):** the real Firebase AI Logic provider is
 > wired in and active when a local `.env` is present (project
 > `mindvault-2026`, Gemini Developer API backend, App Check enforced with
 > reCAPTCHA Enterprise). Without `.env` the app still runs fully in mock
-> mode. Real cloud/on-device calls have NOT been verified end-to-end yet:
-> they need the App Check debug token registered in the console AND a
-> networked browser (this VM's headless test browser cannot reach external
-> URLs — see [NOTES.md](NOTES.md)). See [NOTES.md](NOTES.md) for what is
-> mock vs real, and [ARCHITECTURE.md](ARCHITECTURE.md) for the design.
+> mode. **Production tests on 2026-11-24 verified App Check + the cloud
+> consent flow on the live domain** (https://mindvault-2026.web.app), but
+> cloud calls first 404'd because Google had retired gemini-2.5-flash for
+> new users — the cloud model is now gemini-3.8-flash. The re-test then hit
+> Google-side overload (500 "high demand" and a 429 free-tier limit of 5
+> requests/minute), so a live cloud call has still not succeeded end to
+> end; a retry is scheduled for 21:00 the same evening. Real on-device
+> verification still needs Chrome 139+ with the Prompt API flag (this VM's
+> headless test browser cannot reach external URLs — see
+> [NOTES.md](NOTES.md)). See [NOTES.md](NOTES.md) for what is mock vs
+> real, and [ARCHITECTURE.md](ARCHITECTURE.md) for the design.
 
 ## Quick start
 
@@ -156,15 +162,21 @@ Done in phase 2a (2026-11-24):
 
 Still to do:
 
-5. **Register the debug token** (from the probe run) in the console, then
-   verify real cloud calls + on-device states in a **networked** browser
-   — this VM's headless test browser cannot reach external URLs, so
-   real-AI verification must happen in a real browser (see NOTES.md).
-   Test on-device in Chrome 139+ with the Prompt API flag enabled.
+5. **Register the debug token** — DONE 2026-11-24 (registered in the
+   console; the value is held by the project owner, never in any file).
+   Production tests on 2026-11-24 verified App Check + the consent modal
+   on the live domain; a successful live cloud call is still pending
+   (Google-side 500/429 overload at re-test, retry scheduled 21:00 the
+   same evening). Test on-device in Chrome 139+ with the Prompt API flag
+   enabled — this VM's headless test browser cannot reach external URLs,
+   so real-AI verification must happen in a real browser (see NOTES.md).
 6. **Build + compare the 5 variants** — DONE 2026-11-24 (see NOTES.md):
-   the V5 + V2 merge is built as **v6** and is now the default. Then
-   **deploy** to Firebase Hosting and verify on the real domain (App
-   Check + production reCAPTCHA, cloud consent flow, on-device states).
+   the V5 + V2 merge is built as **v6** and is now the default.
+   **Deployed** to Firebase Hosting 2026-11-24 (V1 19:44, v6 redeployed
+   19:52, https://mindvault-2026.web.app) and verified on the real
+   domain (App Check + production reCAPTCHA, cloud consent flow; cloud
+   call success pending — see item 5; on-device states still need a
+   compliant Chrome).
 7. **Record the demo video** with the **real** provider (never the mock)
    in a compliant Chrome build. The video script needs approval before
    production (standing rule).

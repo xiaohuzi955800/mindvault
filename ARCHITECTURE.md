@@ -250,7 +250,8 @@ on-device description. Seeding is idempotent (module-level promise guard
 
 ## Build & test
 
-- Production bundle: ~414 KB JS / ~130 KB gzip; PWA precache: 17
+- Production bundle (v6, 2026-11-24): firebase mode ~493 KB JS /
+  ~148 KB gzip; mock mode ~448 KB JS / ~134 KB gzip. PWA precache: 17
   entries (`sw.js` + Workbox runtime).
 - `npm run test:db` — 31 Node checks (Dexie CRUD, seed idempotency,
   mock privacy contract) + 1 documented skip (seed photo fetch needs a
