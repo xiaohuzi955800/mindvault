@@ -17,7 +17,10 @@ interface AiPanelProps {
   cloudModelName: string;
   device: ReturnType<typeof useDeviceModel>;
   busy: { summary: boolean; sentiment: boolean; cloud: boolean };
-  error: string | null;
+  /** On-device failure (summary/sentiment) — shown under the on-device panel. */
+  deviceError: string | null;
+  /** Cloud failure (deep summary/suggestions) — shown inside the Cloud insights card. */
+  cloudError: string | null;
   onSummarize: () => void;
   onAnalyzeSentiment: () => void;
   onCloudAction: (action: CloudAction) => void;
@@ -35,9 +38,9 @@ function ResultMeta({ model, createdAt }: { model: string; createdAt: number }) 
  * AI error display: a short friendly message for transient failures
  * (rate limits, service overload), with the exact raw error behind a
  * "Details" toggle so it stays inspectable. Unmapped errors show raw,
- * as before.
+ * as before. Exported for V4's feed-level error display.
  */
-function AiErrorMessage({ error }: { error: string }) {
+export function AiErrorMessage({ error }: { error: string }) {
   const friendly = friendlyAiError(error);
   return (
     <div className="rounded-xl bg-red-50 p-3 text-sm text-red-800" role="alert">
@@ -62,7 +65,8 @@ export function AiPanel({
   cloudModelName,
   device,
   busy,
-  error,
+  deviceError,
+  cloudError,
   onSummarize,
   onAnalyzeSentiment,
   onCloudAction,
@@ -85,7 +89,7 @@ export function AiPanel({
         onSetSimulated={device.setSimulated}
       />
 
-      {error && <AiErrorMessage error={error} />}
+      {deviceError && <AiErrorMessage error={deviceError} />}
 
       <section
         aria-label="On-device insights"
@@ -230,6 +234,8 @@ export function AiPanel({
             Write a few sentences first.
           </p>
         )}
+
+        {cloudError && <AiErrorMessage error={cloudError} />}
 
         {deepSummary && (
           <div className="mt-4 animate-fade-in rounded-lg bg-amber-50 p-3">

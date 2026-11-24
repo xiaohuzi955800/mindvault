@@ -645,6 +645,38 @@ per-entry controls; seeded (sample) data; PWA.
   verification in compliant Chrome; full-notes export (documented
   nice-to-have, limitation #2).
 
+## Cloud error placement fix (2026-11-24 evening)
+
+- **What was wrong:** the 21:00 production re-verification found that a
+  failed cloud call (deep summary / writing suggestions, Google 500
+  "high demand") displayed its error directly under the "On-device AI
+  status" card on the Notes page — a judge would read a cloud failure
+  as an on-device failure. Root cause: `useVault` kept one shared
+  `aiError` state for both on-device and cloud actions, and `AiPanel`
+  rendered it in a single spot between the on-device panel and the
+  on-device insights section.
+- **Fix:** split the state in `useVault.ts` into `deviceError`
+  (set by `runOnDevice` / `runOnDeviceForNote`) and `cloudError`
+  (set by `confirmCloud`); both are cleared on note switch. `AiPanel`
+  now takes `deviceError` + `cloudError` props: the device error stays
+  in its old spot under the on-device panel, and the cloud error
+  renders inside the Cloud insights card, under the Deep summary /
+  Writing suggestions buttons and above the results. `AiErrorMessage`
+  is exported for reuse. V4's feed had the same shared-state problem
+  (`vault.aiError` rendered raw under its on-device panel) — it now
+  renders both errors via `AiErrorMessage` in the same spot. No
+  request logic, consent flow, or friendly-error mapping changed.
+- **Test results:** mock build pass; firebase build pass; smoke 17/17
+  pass; v6 walkthrough 23/23 pass; `test:db` ALL PASS; lint 0 errors,
+  same 9 documented warnings. One setup note while verifying: the
+  first smoke run failed because `dist/` still held the firebase
+  build from the preceding step — smoke needs the mock build
+  (`VITE_AI_PROVIDER=mock npm run build` first). Not an app bug.
+- **Still open:** mock mode cannot produce real provider errors, so
+  the new placement needs live verification on the production domain
+  (next cloud failure should show under Cloud insights, with the
+  Details toggle intact).
+
 ### Test results (5-variant comparison, 2026-11-24)
 
 - `tests/variants-walkthrough.mjs` (Playwright, mock provider, fresh

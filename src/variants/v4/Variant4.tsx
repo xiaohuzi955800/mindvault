@@ -13,6 +13,7 @@ import { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { MoodTimeline } from '../../components/MoodTimeline';
 import { OnDevicePanel } from '../../components/OnDevicePanel';
+import { AiErrorMessage } from '../../components/AiPanel';
 import { SourceBadge } from '../../components/SourceBadge';
 import type { Vault } from '../../hooks/useVault';
 import { db } from '../../lib/db';
@@ -381,11 +382,9 @@ export default function Variant4({ vault }: { vault: Vault }) {
               onSetSimulated={vault.device.setSimulated}
             />
 
-            {vault.aiError && (
-              <p className="rounded-xl bg-red-50 p-3 text-sm text-red-800" role="alert">
-                {vault.aiError}
-              </p>
-            )}
+            {vault.deviceError && <AiErrorMessage error={vault.deviceError} />}
+
+            {vault.cloudError && <AiErrorMessage error={vault.cloudError} />}
 
             <LedgerStrip />
 

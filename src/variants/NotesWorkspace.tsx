@@ -69,7 +69,8 @@ export function NotesWorkspace({ vault }: { vault: Vault }) {
             cloudModelName={vault.provider.cloudModelName}
             device={vault.device}
             busy={vault.busy}
-            error={vault.aiError}
+            deviceError={vault.deviceError}
+            cloudError={vault.cloudError}
             onSummarize={() => void vault.runOnDevice('summary')}
             onAnalyzeSentiment={() => void vault.runOnDevice('sentiment')}
             onCloudAction={vault.requestCloud}

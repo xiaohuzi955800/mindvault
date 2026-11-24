@@ -55,7 +55,15 @@ export function useVault() {
   const [saveState, setSaveState] = useState<'saved' | 'saving'>('saved');
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [busy, setBusy] = useState({ summary: false, sentiment: false, cloud: false });
-  const [aiError, setAiError] = useState<string | null>(null);
+  /**
+   * Errors are tracked separately by source so the UI can show each one in
+   its own card: on-device failures under the on-device panel, cloud
+   failures inside the Cloud insights card. A single shared error used to
+   render every failure under the on-device panel, so a cloud 500/429
+   looked like an on-device problem.
+   */
+  const [deviceError, setDeviceError] = useState<string | null>(null);
+  const [cloudError, setCloudError] = useState<string | null>(null);
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [describingPhotoId, setDescribingPhotoId] = useState<string | null>(null);
   const [pendingCloud, setPendingCloud] = useState<CloudAction | null>(null);
@@ -95,7 +103,8 @@ export function useVault() {
         ? current
         : { noteId: id, title: selected.title, content: selected.content },
     );
-    setAiError(null);
+    setDeviceError(null);
+    setCloudError(null);
     setPhotoError(null);
   }, [selected?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -230,7 +239,7 @@ export function useVault() {
     async (kind: 'summary' | 'sentiment') => {
       if (!selected?.id || !draft) return;
       await flushSave();
-      setAiError(null);
+      setDeviceError(null);
       setBusy((b) => ({ ...b, [kind]: true }));
       try {
         await runOnDeviceImpl(
@@ -238,7 +247,7 @@ export function useVault() {
           kind,
         );
       } catch (err) {
-        setAiError(err instanceof Error ? err.message : String(err));
+        setDeviceError(err instanceof Error ? err.message : String(err));
       } finally {
         setBusy((b) => ({ ...b, [kind]: false }));
       }
@@ -253,7 +262,7 @@ export function useVault() {
       await flushSave();
       const fresh = await db.notes.get(note.id);
       if (!fresh) return;
-      setAiError(null);
+      setDeviceError(null);
       setBusy((b) => ({ ...b, [kind]: true }));
       try {
         await runOnDeviceImpl(
@@ -261,7 +270,7 @@ export function useVault() {
           kind,
         );
       } catch (err) {
-        setAiError(err instanceof Error ? err.message : String(err));
+        setDeviceError(err instanceof Error ? err.message : String(err));
       } finally {
         setBusy((b) => ({ ...b, [kind]: false }));
       }
@@ -301,7 +310,7 @@ export function useVault() {
     if (!targetId || !target) return;
     const authorizedAt = Date.now();
     setConsentBusy(true);
-    setAiError(null);
+    setCloudError(null);
     setBusy((b) => ({ ...b, cloud: true }));
     try {
       const input = { id: targetId, title: target.title, content: target.content };
@@ -334,7 +343,7 @@ export function useVault() {
       setPendingCloud(null);
       setPendingCloudNote(null);
     } catch (err) {
-      setAiError(err instanceof Error ? err.message : String(err));
+      setCloudError(err instanceof Error ? err.message : String(err));
     } finally {
       setConsentBusy(false);
       setBusy((b) => ({ ...b, cloud: false }));
@@ -447,7 +456,8 @@ export function useVault() {
     saveState,
     savedAt,
     busy,
-    aiError,
+    deviceError,
+    cloudError,
     photoError,
     describingPhotoId,
     pendingCloud,
