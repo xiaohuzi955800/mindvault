@@ -1,5 +1,5 @@
 /**
- * Scripted walkthrough for all five MindVault UI variants.
+ * Scripted walkthrough for all six MindVault UI variants.
  *
  * Same walkthrough, same seed data, every variant:
  *   open app → read a seeded note → enable on-device AI → create a note
@@ -12,6 +12,7 @@
  *   VITE_VARIANT=v2 VITE_AI_PROVIDER=mock npm run build
  *   npm run preview        # in another terminal (port 4173)
  *   node tests/variants-walkthrough.mjs v2
+ * (v6 is the default — a plain build needs no VITE_VARIANT.)
  *
  * Screenshots: /tmp/mindvault-vN-home.png (first screen) and
  * /tmp/mindvault-vN.png (end of walkthrough).
@@ -104,14 +105,13 @@ async function runCloudIn(scope, page) {
 
 async function checkLedgerView(page) {
   await page.getByText('Every AI action, accounted for').waitFor({ timeout: 5000 });
-  check(
-    'ledger lists the on-device summary',
-    await page.getByText('On-device summary').first().isVisible(),
-  );
-  check(
-    'ledger lists the cloud deep summary',
-    await page.getByText('Cloud deep summary').first().isVisible(),
-  );
+  // Entries load via a live IndexedDB query, so wait for them — the
+  // section heading renders immediately even with zero entries, so
+  // waiting on it alone is not enough (flaky without this wait).
+  await page.getByText('On-device summary').first().waitFor({ timeout: 5000 });
+  check('ledger lists the on-device summary', true);
+  await page.getByText('Cloud deep summary').first().waitFor({ timeout: 5000 });
+  check('ledger lists the cloud deep summary', true);
   check(
     'ledger shows zero silent uploads',
     (await page.getByText('Silent uploads').count()) >= 1,
@@ -305,12 +305,82 @@ async function flowV5(page) {
   await checkMoodView(page);
 }
 
-const FLOWS = { v1: flowV1, v2: flowV2, v3: flowV3, v4: flowV4, v5: flowV5 };
+async function flowV6(page) {
+  // Vault is home: privacy score + ledger hero.
+  await page.getByText('Your vault, verified').waitFor({ timeout: 10000 });
+  check('vault home shows privacy dashboard', true);
+  check(
+    'privacy score states 100% of sensitive insights stayed on-device',
+    await page
+      .getByText('100% of sensitive insights stayed on this device')
+      .isVisible(),
+  );
+
+  await enableDevice(page);
+
+  // Open the vault → notes workspace.
+  await page.getByRole('button', { name: 'Open vault →' }).first().click();
+  await page.getByText('A quiet Sunday').first().waitFor({ timeout: 10000 });
+  check('notes workspace opens from the vault', true);
+
+  // Two "+ New entry" buttons exist on the Notes tab (header + note list);
+  // the header one comes first in DOM order.
+  await page.getByRole('button', { name: '+ New entry' }).first().click();
+  await waitForEditorEmpty(page);
+  await fillNewNote(page);
+  await runOnDeviceIn(page);
+  await runCloudIn(page, page);
+
+  await page.getByRole('button', { name: 'Vault', exact: true }).click();
+  await checkLedgerView(page);
+  check(
+    'privacy score still 100 after cloud actions',
+    await page
+      .getByText('100% of sensitive insights stayed on this device')
+      .isVisible(),
+  );
+
+  // Per-entry privacy control: remove the seeded entry's cloud results.
+  // Scope to the controls section (the ledger below also lists this note).
+  const controls = page.locator('section[aria-label="Per-entry privacy controls"]');
+  const row = controls.locator('li', { hasText: 'A small win, finally' }).first();
+  await row.getByRole('button', { name: 'Remove cloud results' }).click();
+  await row.getByRole('button', { name: 'Click again to remove' }).click();
+  await page.waitForFunction(() => {
+    const rows = [...document.querySelectorAll('li')].filter((li) =>
+      li.textContent?.includes('A small win, finally'),
+    );
+    return rows.every((li) => !li.textContent?.includes('Remove cloud results'));
+  }, { timeout: 10000 });
+  check('per-entry control removes cloud results (two-step confirm)', true);
+
+  // Dashboard tab: mood chart + clickable calendar + recent insights.
+  await page.getByRole('button', { name: 'Dashboard', exact: true }).click();
+  await page.getByText('How have your days felt?').waitFor({ timeout: 5000 });
+  check('dashboard tab shows mood hero', true);
+  await checkMoodView(page);
+  check(
+    'recent insights strip present',
+    await page.getByText('Recent insights').isVisible(),
+  );
+
+  // Calendar-driven navigation: click a day with an entry — it opens in
+  // the Notes tab (v6 has no overlay editor).
+  const dayButton = page.getByRole('button', { name: /open this entry/ }).first();
+  await dayButton.click();
+  await page.waitForFunction(
+    () => document.querySelector('#note-title')?.value !== '',
+    { timeout: 10000 },
+  );
+  check('calendar day opens the entry in the Notes tab', true);
+}
+
+const FLOWS = { v1: flowV1, v2: flowV2, v3: flowV3, v4: flowV4, v5: flowV5, v6: flowV6 };
 
 async function main() {
   const flow = FLOWS[VARIANT];
   if (!flow) {
-    console.error(`Unknown variant "${VARIANT}". Use v1..v5.`);
+    console.error(`Unknown variant "${VARIANT}". Use v1..v6.`);
     process.exit(2);
   }
   const executablePath = CANDIDATES.find((p) => fs.existsSync(p));

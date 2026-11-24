@@ -1,15 +1,18 @@
 # MindVault — Phase 1 + 2a notes
 
-Status: **2026-11-24, phase 2a complete + 5-variant comparison done.**
+Status: **2026-11-24, phase 2a complete + 5-variant comparison done + v6
+merged submission version built (default).**
 Phase 1 (mock provider, fully working app) is done and verified; phase 2a
 wired in the real Firebase AI Logic provider + App Check (see "Phase 2a"
 below); the 5 UI variants are built and compared (see "5-variant
-comparison (results)"). Real cloud/on-device calls are NOT yet verified
-end-to-end — they need the App Check debug token registered in the console
-AND a networked browser. This file records what is mock vs real, what
-phase 2 needs, known limitations, and the 5-variant proposal required by
-the standing rule (at least 5 substantially different versions, compared
-and tested, before settling).
+comparison (results)"); the winner is merged into **v6** (V5 vault +
+V2 dashboard + V1 notes), which is now the default build (see "v6 —
+merged submission version"). Real cloud/on-device calls are NOT yet
+verified end-to-end — they need the App Check debug token registered in
+the console AND a networked browser. This file records what is mock vs
+real, what phase 2 needs, known limitations, and the 5-variant proposal
+required by the standing rule (at least 5 substantially different
+versions, compared and tested, before settling).
 
 ## What is mock vs real
 
@@ -145,8 +148,9 @@ with no regressions; lint 0 errors (same 10 documented warnings).
 - [x] Build + compare the 5 variants below; pick the strongest (or a
       hybrid) by the judging criteria. — DONE 2026-11-24, see "5-variant
       comparison (results)". Recommendation: merge V5 (vault home) +
-      V2 (mood dashboard) as the submission; the merge (v6) is NOT built
-      yet — see the merge spec in that section.
+      V2 (mood dashboard) as the submission; the merge (v6) is BUILT
+      2026-11-24 and is now the default — see "v6 — merged submission
+      version".
 - [ ] Demo video (≤ 3 min) recorded with the **real** provider in a
       compliant Chrome build; script approved before recording.
 - [ ] GitHub public repo + completed Devpost submission (video URL, demo
@@ -286,7 +290,8 @@ most. Build order follows the numbering; V1 (current) is the baseline.
 
 ### Variant mechanism
 
-- One build, one switch: `VITE_VARIANT=v1|v2|v3|v4|v5` (default `v1`).
+- One build, one switch: `VITE_VARIANT=v1|v2|v3|v4|v5|v6` (default
+  `v6` since the merge — see "v6 — merged submission version").
   `src/App.tsx` renders the selected variant from
   `src/variants/vN/VariantN.tsx` and adds `data-variant="<id>"` to the
   root (the walkthrough asserts it). Build any variant with, e.g.:
@@ -309,9 +314,9 @@ most. Build order follows the numbering; V1 (current) is the baseline.
   (V5's per-entry control; the ledger keeps its entries — the audit
   trail is append-only), and clickable calendar days in `MoodTimeline`
   (optional `onDayClick` prop, used by V2).
-- NOTE: all five variants ship in one bundle (the switch is runtime).
-  Before final submission, delete the losing variants (or keep only the
-  winner) so the shipped bundle contains only the submitted UX.
+- NOTE: all six variants ship in one bundle (the switch is runtime).
+  Before final submission, delete the losing variants (or keep only
+  v6) so the shipped bundle contains only the submitted UX.
 
 ### What each variant is
 
@@ -394,7 +399,7 @@ Justifications (one line per score):
   IS the home screen; the privacy score is a memorable, original
   mechanism. First 30s 5: the idea lands in 5 seconds.
 
-### Recommendation: merge V5 + V2 (NOT built yet — needs a decision)
+### Recommendation: merge V5 + V2 (BUILT 2026-11-24 as v6 — see below)
 
 **Winner: a V5 + V2 merge (call it v6).** V5 has the highest total
 (18/20) and the strongest Idea/Impact; V2 has the best Design and an
@@ -416,6 +421,92 @@ equal first-30-seconds score. The merge takes both:
 - V3's focused-writer lesson to keep: generous whitespace and the serif
   reading surface — already present in the shared editor; no separate
   V3 element needed in the merge.
+
+## v6 — merged submission version (built 2026-11-24, now the default)
+
+The merge spec from the comparison above, built exactly as specified.
+Tabs: **Vault / Notes / Dashboard** — no separate ledger tab (the ledger
+is the Vault home's hero section).
+
+- **Vault tab (home)** = the V5 vault: privacy-score ring ("100% of
+  sensitive insights stayed on this device"), on-device status panel,
+  per-entry privacy controls (badges + "Remove cloud results" with
+  two-step confirm), and the full Privacy Ledger as the hero section.
+- **Notes tab** = the V1 three-column workspace (list | editor | AI
+  panel), reused via the shared `NotesWorkspace`.
+- **Dashboard tab** = the V2 dashboard: mood chart + clickable calendar
+  heatmap + recent insight cards. Clicking a calendar day or insight
+  card opens that entry in the Notes tab (v6 has no overlay editor).
+- Header: the same brand header + status pill as the other variants,
+  with a **+ New entry** button (creates a note and switches to the
+  Notes tab) on every tab. The status pill navigates to the Vault tab,
+  where the on-device panel lives.
+- The V3 lesson (generous whitespace, serif reading surface) is kept in
+  the shared editor; no separate V3 element was needed. The optional
+  V4 fold-in (inline insight badges on the notes list) was NOT built —
+  the merge already covers the differentiator, and the spec said not to
+  let it bloat the scope.
+
+### How it is built (no duplicated logic)
+
+The merge reuses the shared layer; `Variant6.tsx` is only tab
+navigation (~100 lines):
+
+- `src/variants/VaultHome.tsx` (new, shared by V5 + V6): the whole
+  vault view — `PrivacyScore`, `EntryPrivacyControls`, the on-device
+  panel, the ledger, and the "Open vault" call to action. Extracted
+  verbatim from `Variant5.tsx`, which now just renders it. V5's UI is
+  unchanged (its walkthrough re-run passes — see below).
+- `src/variants/DashboardView.tsx` (new, shared by V2 + V6): the
+  dashboard — heading, `MoodTimeline` with `onDayClick`, and the
+  recent-insights strip. Extracted verbatim from `Variant2.tsx`,
+  which now renders it plus its own "All entries" section (V2-only;
+  the merge spec lists only chart + calendar + insights for the
+  Dashboard tab). V2's UI is unchanged (its walkthrough re-run passes).
+- `src/App.tsx`: `VITE_VARIANT=v6` registered, and **v6 is now the
+  default** — a plain build with no `VITE_VARIANT` renders v6. v1–v5
+  are kept intact and still selectable (`VITE_VARIANT=v1` … `v5`);
+  deleting the losing variants is a pre-submission cleanup step (the
+  note in "Variant mechanism" above still applies — all six ship in
+  one bundle until then).
+
+### Test results (v6, 2026-11-24)
+
+- `tests/variants-walkthrough.mjs v6` (new `flowV6`, mock provider):
+  **23/23 pass, zero page errors.** Covers: shell + `data-variant="v6"`
+  + mock banner, vault home + privacy score 100, on-device enable,
+  notes workspace from the vault, new-note autosave, on-device summary
+  (ON-DEVICE badge) + sentiment, consent modal gating + cloud deep
+  summary (IN-CLOUD badge), ledger entries + score still 100 after
+  cloud actions, per-entry cloud-result removal (two-step confirm),
+  Dashboard tab (mood hero + chart + recent insights), calendar day
+  opening the entry in the Notes tab.
+- `npm run test:smoke` — **17/17 pass** (run 2× after the fix below;
+  one pre-fix run also passed after a single flaky failure — see below).
+  The smoke test now drives the DEFAULT build (v6): it was adapted to
+  the v6 tabs (Vault home for the ledger, Dashboard for the mood
+  chart). The "Silent uploads" check is scoped to the ledger section —
+  the privacy-score card shows the same counter.
+- `npm run test:db` — ALL DB TESTS PASSED (unchanged).
+- `npm run build` — passes in both modes: mock (`VITE_AI_PROVIDER=mock`,
+  ~447 KB JS / ~134 KB gzip) and firebase (`.env` config, ~493 KB JS /
+  ~148 KB gzip, 17 precache entries). The production bundle contains
+  the Firebase SDK + config (public client values, by design); the
+  App Check debug-token code path is DEV-only dead code, and no debug
+  token value is present in `.env` or in the bundle (verified).
+- `npm run lint` — 0 errors, same 9 documented warnings (no new ones).
+- Regression re-runs after the shared-component extraction:
+  `flowV5` 21/21 pass, `flowV2` 18/18 pass — V5 and V2 are unchanged
+  in behavior.
+- Screenshots: `/tmp/mindvault-v6-home.png` (Vault home) and
+  `/tmp/mindvault-v6.png` (end of walkthrough, Notes tab).
+- One test bug found and fixed during v6 (test bug, not app bug):
+  the ledger-entry checks in `smoke.mjs` and `checkLedgerView`
+  waited only for the section heading, but entries load via a live
+  IndexedDB query — the heading renders immediately even with zero
+  entries, so the check was racy (smoke failed once on "ledger lists
+  the on-device summary", then passed on re-run). Both tests now wait
+  for the entry text itself before asserting.
 
 ### Test results (5-variant comparison, 2026-11-24)
 

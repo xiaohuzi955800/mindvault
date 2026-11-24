@@ -7,16 +7,16 @@
  * focused overlay. The hypothesis: a striking first screen (chart +
  * heatmap) scores higher on Design and Potential Impact than a notes list,
  * and it makes the structured-JSON sentiment output impossible to miss.
+ *
+ * The dashboard itself is shared with V6 (see `../DashboardView.tsx`).
  */
-import { useCallback, useMemo, useState } from 'react';
-import { MoodTimeline } from '../../components/MoodTimeline';
+import { useCallback, useState } from 'react';
 import { NoteList } from '../../components/NoteList';
 import { PrivacyLedger } from '../../components/PrivacyLedger';
-import { SourceBadge } from '../../components/SourceBadge';
 import type { Vault } from '../../hooks/useVault';
 import { formatDate } from '../../lib/format';
-import { moodDotClass } from '../../lib/mood';
 import { AppFooter, AppHeader } from '../chrome';
+import { DashboardView } from '../DashboardView';
 import { EditorOverlay } from '../EditorOverlay';
 
 type View = 'dashboard' | 'entries' | 'ledger';
@@ -41,16 +41,6 @@ export default function Variant2({ vault }: { vault: Vault }) {
   const closeOverlay = useCallback(() => {
     setOverlayOpen(false);
   }, []);
-
-  // Recent entries that already have on-device insights — the dashboard's
-  // "recent insights" strip.
-  const insightCards = useMemo(
-    () =>
-      vault.notes
-        .filter((note) => note.analysis.summary || note.analysis.sentiment)
-        .slice(0, 3),
-    [vault.notes],
-  );
 
   const tabs: Array<{ id: View; label: string }> = [
     { id: 'dashboard', label: 'Dashboard' },
@@ -82,78 +72,7 @@ export default function Variant2({ vault }: { vault: Vault }) {
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-4">
         {view === 'dashboard' && (
           <div className="mx-auto flex max-w-4xl flex-col gap-6">
-            <div>
-              <h2 className="font-serif text-2xl font-bold text-stone-900">
-                How have your days felt?
-              </h2>
-              <p className="mt-1 text-sm text-stone-600">
-                Your mood timeline, built entirely on this device from your
-                diary — nothing here was ever sent to a cloud. Click any
-                highlighted day to open that entry.
-              </p>
-            </div>
-
-            <MoodTimeline
-              notes={vault.notes}
-              onDayClick={(id) => void openEntry(id)}
-            />
-
-            <section aria-label="Recent insights">
-              <h3 className="text-sm font-semibold text-stone-900">
-                Recent insights
-              </h3>
-              {insightCards.length === 0 ? (
-                <p className="mt-2 text-sm text-stone-500">
-                  No insights yet — open an entry and run a summary or mood
-                  analysis on-device.
-                </p>
-              ) : (
-                <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                  {insightCards.map((note) => (
-                    <button
-                      key={note.id}
-                      type="button"
-                      onClick={() => note.id !== undefined && void openEntry(note.id)}
-                      className="rounded-xl border border-stone-200 bg-white p-4 text-left shadow-sm hover:border-teal-700/40 hover:shadow-md"
-                    >
-                      <span className="flex items-center gap-2">
-                        {note.analysis.sentiment && (
-                          <span
-                            aria-hidden="true"
-                            className={`inline-block h-2.5 w-2.5 shrink-0 rounded-full ${moodDotClass(note.analysis.sentiment.score)}`}
-                          />
-                        )}
-                        <span className="truncate text-sm font-semibold text-stone-900">
-                          {note.title.trim() || 'Untitled entry'}
-                        </span>
-                      </span>
-                      <span className="mt-0.5 block text-xs text-stone-500">
-                        {formatDate(note.createdAt)}
-                      </span>
-                      {note.analysis.sentiment && (
-                        <span className="mt-2 block text-sm text-stone-800">
-                          {note.analysis.sentiment.label} (
-                          {note.analysis.sentiment.score})
-                        </span>
-                      )}
-                      {note.analysis.summary && (
-                        <span className="mt-1 line-clamp-3 block text-xs leading-relaxed text-stone-600">
-                          {note.analysis.summary.text}
-                        </span>
-                      )}
-                      <span className="mt-3 flex flex-wrap gap-1.5">
-                        {note.analysis.summary && (
-                          <SourceBadge source={note.analysis.summary.source} compact />
-                        )}
-                        {note.analysis.deepSummary && (
-                          <SourceBadge source={note.analysis.deepSummary.source} compact />
-                        )}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </section>
+            <DashboardView vault={vault} onOpenEntry={(id) => void openEntry(id)} />
 
             <section aria-label="All entries">
               <div className="flex items-center justify-between">

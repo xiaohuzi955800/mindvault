@@ -71,20 +71,25 @@ judges can click through every view immediately.
 | `npm run preview` | Serve `dist/` on port 4173 |
 | `npm run lint` | oxlint (0 errors; 10 documented non-blocking warnings — see NOTES.md) |
 | `npm run test:db` | Node tests: Dexie store, seed data, mock-provider privacy contract |
-| `npm run test:smoke` | Playwright smoke test against `npm run preview` (needs a built `dist/`) |
-| `npm run test:variants` | Scripted walkthrough for one UI variant: `node tests/variants-walkthrough.mjs v2` (needs the matching `VITE_VARIANT` build + `npm run preview`) |
+| `npm run test:smoke` | Playwright smoke test against `npm run preview` (needs a built `dist/`; tests the default v6 build) |
+| `npm run test:variants` | Scripted walkthrough for one UI variant: `node tests/variants-walkthrough.mjs v2` (needs the matching `VITE_VARIANT` build + `npm run preview`; v6 is the default, no `VITE_VARIANT` needed) |
 | `node tests/probe-firebase.mjs` | Firebase-mode probe: App Check debug-token capture, on-device availability probe, graceful-failure check (needs `npm run dev` + a real `.env`; uses a persistent Chromium profile so the debug token stays valid across runs) |
 
-## UI variants (5 compared, 2026-11-24)
+## UI variants (5 compared, merged into v6, 2026-11-24)
 
-All five variants run on the same shared core (`useVault` — data, AI,
+All variants run on the same shared core (`useVault` — data, AI,
 privacy model) and differ only in layout and navigation. Select one with
-`VITE_VARIANT` at build time (default `v1`):
+`VITE_VARIANT` at build time (default `v6`, the merged submission
+version):
 
 ```bash
 VITE_VARIANT=v2 VITE_AI_PROVIDER=mock npm run build   # mood-first dashboard
 ```
 
+- **v6 Merged submission version (default)**: Vault home (privacy score
+  + ledger hero, from V5) + Notes workspace (three columns, from V1) +
+  Dashboard (mood chart + clickable calendar, from V2). Tabs: Vault /
+  Notes / Dashboard.
 - **v1 Journal-first** (baseline): three columns — note list | editor |
   AI panel.
 - **v2 Mood-first dashboard**: mood chart + clickable calendar heatmap
@@ -96,9 +101,12 @@ VITE_VARIANT=v2 VITE_AI_PROVIDER=mock npm run build   # mood-first dashboard
 - **v5 Vault-first**: privacy dashboard + privacy score as home, with
   per-entry privacy controls; notes one tap behind.
 
-Full scores and the recommendation (merge V5 + V2) are in
-[NOTES.md](NOTES.md#5-variant-comparison-results-2026-11-24). The merge
-is not built yet.
+Full scores and the merge decision are in
+[NOTES.md](NOTES.md#5-variant-comparison-results-2026-11-24); the v6
+build and its test results are in
+[NOTES.md](NOTES.md#v6--merged-submission-version-built-2026-11-24-now-the-default).
+Before submission, the losing variants (v1–v5) will be removed so the
+shipped bundle contains only v6.
 
 ## Tech stack
 
@@ -154,9 +162,9 @@ Still to do:
    real-AI verification must happen in a real browser (see NOTES.md).
    Test on-device in Chrome 139+ with the Prompt API flag enabled.
 6. **Build + compare the 5 variants** — DONE 2026-11-24 (see NOTES.md):
-   recommendation is a V5 + V2 merge (not built yet). Then **deploy**
-   to Firebase Hosting and verify on the real domain (App Check +
-   production reCAPTCHA, cloud consent flow, on-device states).
+   the V5 + V2 merge is built as **v6** and is now the default. Then
+   **deploy** to Firebase Hosting and verify on the real domain (App
+   Check + production reCAPTCHA, cloud consent flow, on-device states).
 7. **Record the demo video** with the **real** provider (never the mock)
    in a compliant Chrome build. The video script needs approval before
    production (standing rule).
@@ -175,7 +183,10 @@ src/
                       useVault (shared stateful core for all variants)
   variants/           chrome.tsx (header/footer), NotesWorkspace.tsx
                       (three-column view), EditorOverlay.tsx,
-                      v1/…v5/ (one view layer per variant)
+                      VaultHome.tsx (vault view, V5 + V6),
+                      DashboardView.tsx (mood dashboard, V2 + V6),
+                      v1/…v6/ (one view layer per variant; v6 is the
+                      merged submission version and the default)
   lib/
     ai/               types.ts (provider interface), mockProvider.ts,
                       firebaseProvider.ts, index.ts (factory)

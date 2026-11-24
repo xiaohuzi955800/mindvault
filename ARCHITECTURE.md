@@ -19,7 +19,8 @@
 ┌──────────────────────────────────────────────────────────────┐
 │ Browser (PWA shell, precached app shell only)                │
 │                                                              │
-│  React UI (views: Notes / Mood timeline / Privacy ledger)    │
+│  React UI — v6 (default): Vault / Notes / Dashboard tabs;     │
+│  v1–v5 remain selectable via VITE_VARIANT (see NOTES.md)     │
 │      │                                                       │
 │      ├─ Dexie (IndexedDB) ─ notes, analyses, photos, ledger  │
 │      │                                                       │
@@ -205,7 +206,9 @@ with guidance (Chrome version / flags) instead of falling back.
 
 | Component | Responsibility |
 | --- | --- |
-| `App.tsx` | View routing, header + status pill, autosave (800 ms debounce, Ctrl/Cmd+S flush), all AI handlers, ledger writes |
+| `App.tsx` | Variant switch (`VITE_VARIANT`, default v6) + shared consent modal; the variants own their tab navigation |
+| `useVault` | Shared stateful core for all variants: notes, autosave draft, device model, all AI actions, consent flow, photos, ledger |
+| `variants/` | Shared view pieces (`VaultHome`, `DashboardView`, `NotesWorkspace`, `EditorOverlay`, `chrome`) + one view layer per variant (`v1/`…`v6/`) |
 | `NoteList` | Search filter, mood dots, per-note analysis indicators, entry count |
 | `NoteEditor` | Title/body editing, save state, photo attach/remove, two-step delete |
 | `AiPanel` | On-device + cloud insight sections, source badges, sentiment bar, keyword chips, error surface (`role="alert"`) |
