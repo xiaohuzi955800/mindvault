@@ -8,6 +8,7 @@ import { formatDate } from '../lib/format';
 import { moodColor } from '../lib/mood';
 
 interface MoodPoint {
+  noteId: number;
   date: number;
   score: number;
   label: string;
@@ -28,12 +29,23 @@ function dayKey(timestamp: number): string {
   return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
 }
 
-export function MoodTimeline({ notes }: { notes: Note[] }) {
+/**
+ * @param onDayClick — when provided (V2 dashboard), calendar days that have
+ * an analyzed entry become buttons opening that entry.
+ */
+export function MoodTimeline({
+  notes,
+  onDayClick,
+}: {
+  notes: Note[];
+  onDayClick?: (noteId: number) => void;
+}) {
   const points: MoodPoint[] = useMemo(
     () =>
       notes
-        .filter((note) => note.analysis.sentiment)
+        .filter((note) => note.analysis.sentiment && note.id !== undefined)
         .map((note) => ({
+          noteId: note.id as number,
           date: note.createdAt,
           score: note.analysis.sentiment?.score ?? 0,
           label: note.analysis.sentiment?.label ?? 'Mixed',
@@ -191,7 +203,13 @@ export function MoodTimeline({ notes }: { notes: Note[] }) {
                 <text
                   x={chartX(i)}
                   y={CHART_HEIGHT - 8}
-                  textAnchor="middle"
+                  textAnchor={
+                    points.length === 1
+                      ? 'middle'
+                      : i === 0
+                        ? 'start'
+                        : 'end'
+                  }
                   fontSize={11}
                   fill="#78716c"
                 >
@@ -216,20 +234,36 @@ export function MoodTimeline({ notes }: { notes: Note[] }) {
               {day}
             </span>
           ))}
-          {calendarDays.map(({ date, point }) => (
-            <span
-              key={date.getTime()}
-              title={
-                point
-                  ? `${formatDate(date.getTime())} — ${point.label} (${point.score})`
-                  : `${formatDate(date.getTime())} — no analyzed entry`
-              }
-              className="aspect-square rounded-md ring-1 ring-stone-200/60"
-              style={{
-                backgroundColor: point ? moodColor(point.score) : '#f5f5f4',
-              }}
-            />
-          ))}
+          {calendarDays.map(({ date, point }) => {
+            const label = point
+              ? `${formatDate(date.getTime())} — ${point.label} (${point.score})`
+              : `${formatDate(date.getTime())} — no analyzed entry`;
+            const style = {
+              backgroundColor: point ? moodColor(point.score) : '#f5f5f4',
+            };
+            // In the V2 dashboard, days with an entry are clickable.
+            if (point && onDayClick) {
+              return (
+                <button
+                  key={date.getTime()}
+                  type="button"
+                  title={label}
+                  aria-label={`${label} — open this entry`}
+                  onClick={() => onDayClick(point.noteId)}
+                  className="aspect-square rounded-md ring-1 ring-stone-200/60 transition-transform hover:scale-110 hover:ring-2 hover:ring-teal-700/50"
+                  style={style}
+                />
+              );
+            }
+            return (
+              <span
+                key={date.getTime()}
+                title={label}
+                className="aspect-square rounded-md ring-1 ring-stone-200/60"
+                style={style}
+              />
+            );
+          })}
         </div>
         <div className="mt-3 flex items-center gap-3 text-[11px] text-stone-500">
           <span>Lower mood</span>

@@ -82,11 +82,14 @@ async function main() {
     await page.getByText(/Saved locally/).first().waitFor({ timeout: 10000 });
     check('new note autosaves locally', true);
 
-    // On-device summary.
+    // On-device summary. Completion signal: the button flips to
+    // "Re-summarize" only after the result is saved. (Waiting on
+    // getByText('ON-DEVICE') would substring-match the "On-device AI"
+    // panel heading and return before the summary exists.)
     await page.getByRole('button', { name: 'Summarize on device' }).click();
-    await page.getByText('ON-DEVICE').first().waitFor({ timeout: 10000 });
+    await page.getByRole('button', { name: 'Re-summarize' }).waitFor({ timeout: 15000 });
     const summaryVisible = await page
-      .getByText(/happy and grateful today/i)
+      .getByText('ON-DEVICE', { exact: true })
       .first()
       .isVisible()
       .catch(() => false);
@@ -117,7 +120,7 @@ async function main() {
       .getByRole('checkbox', { name: /I understand this note will/ })
       .check();
     await confirmButton.click();
-    await page.getByText('IN-CLOUD').first().waitFor({ timeout: 10000 });
+    await page.getByText('IN-CLOUD', { exact: true }).first().waitFor({ timeout: 10000 });
     check('cloud deep summary runs after approval with IN-CLOUD badge', true);
 
     // Privacy ledger records everything.

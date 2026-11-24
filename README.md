@@ -72,7 +72,33 @@ judges can click through every view immediately.
 | `npm run lint` | oxlint (0 errors; 10 documented non-blocking warnings — see NOTES.md) |
 | `npm run test:db` | Node tests: Dexie store, seed data, mock-provider privacy contract |
 | `npm run test:smoke` | Playwright smoke test against `npm run preview` (needs a built `dist/`) |
+| `npm run test:variants` | Scripted walkthrough for one UI variant: `node tests/variants-walkthrough.mjs v2` (needs the matching `VITE_VARIANT` build + `npm run preview`) |
 | `node tests/probe-firebase.mjs` | Firebase-mode probe: App Check debug-token capture, on-device availability probe, graceful-failure check (needs `npm run dev` + a real `.env`; uses a persistent Chromium profile so the debug token stays valid across runs) |
+
+## UI variants (5 compared, 2026-11-24)
+
+All five variants run on the same shared core (`useVault` — data, AI,
+privacy model) and differ only in layout and navigation. Select one with
+`VITE_VARIANT` at build time (default `v1`):
+
+```bash
+VITE_VARIANT=v2 VITE_AI_PROVIDER=mock npm run build   # mood-first dashboard
+```
+
+- **v1 Journal-first** (baseline): three columns — note list | editor |
+  AI panel.
+- **v2 Mood-first dashboard**: mood chart + clickable calendar heatmap
+  as home; entries open in a focused editor overlay.
+- **v3 Focused writer**: single centered column; note list in a
+  slide-over drawer; AI in an on-demand bottom sheet.
+- **v4 Timeline feed**: notes as chronological cards with inline insight
+  cards; the ledger becomes a live counts strip + filter chips.
+- **v5 Vault-first**: privacy dashboard + privacy score as home, with
+  per-entry privacy controls; notes one tap behind.
+
+Full scores and the recommendation (merge V5 + V2) are in
+[NOTES.md](NOTES.md#5-variant-comparison-results-2026-11-24). The merge
+is not built yet.
 
 ## Tech stack
 
@@ -127,8 +153,9 @@ Still to do:
    — this VM's headless test browser cannot reach external URLs, so
    real-AI verification must happen in a real browser (see NOTES.md).
    Test on-device in Chrome 139+ with the Prompt API flag enabled.
-6. **Build + compare the 5 variants** (see NOTES.md), then **deploy** to
-   Firebase Hosting and verify on the real domain (App Check +
+6. **Build + compare the 5 variants** — DONE 2026-11-24 (see NOTES.md):
+   recommendation is a V5 + V2 merge (not built yet). Then **deploy**
+   to Firebase Hosting and verify on the real domain (App Check +
    production reCAPTCHA, cloud consent flow, on-device states).
 7. **Record the demo video** with the **real** provider (never the mock)
    in a compliant Chrome build. The video script needs approval before
@@ -139,12 +166,16 @@ Still to do:
 ```
 src/
   main.tsx            entry point, PWA service-worker registration
-  App.tsx             layout, views, autosave, all AI handlers
+  App.tsx             variant switch (VITE_VARIANT) + shared consent modal
   index.css           Tailwind v4 theme (paper / teal / brass)
   components/         SourceBadge, OnDevicePanel, CloudConsentModal,
                       NoteList, NoteEditor, AiPanel, MoodTimeline,
                       PrivacyLedger
-  hooks/              useDeviceModel (availability state machine)
+  hooks/              useDeviceModel (availability state machine),
+                      useVault (shared stateful core for all variants)
+  variants/           chrome.tsx (header/footer), NotesWorkspace.tsx
+                      (three-column view), EditorOverlay.tsx,
+                      v1/…v5/ (one view layer per variant)
   lib/
     ai/               types.ts (provider interface), mockProvider.ts,
                       firebaseProvider.ts, index.ts (factory)

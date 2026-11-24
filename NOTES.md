@@ -1,13 +1,15 @@
 # MindVault — Phase 1 + 2a notes
 
-Status: **2026-11-24, phase 2a complete.** Phase 1 (mock provider, fully
-working app) is done and verified; phase 2a wired in the real Firebase AI
-Logic provider + App Check (see "Phase 2a" below). Real cloud/on-device
-calls are NOT yet verified end-to-end — they need the App Check debug
-token registered in the console AND a networked browser. This file records
-what is mock vs real, what phase 2 needs, known limitations, and the
-5-variant proposal required by the standing rule (at least 5 substantially
-different versions, compared and tested, before settling).
+Status: **2026-11-24, phase 2a complete + 5-variant comparison done.**
+Phase 1 (mock provider, fully working app) is done and verified; phase 2a
+wired in the real Firebase AI Logic provider + App Check (see "Phase 2a"
+below); the 5 UI variants are built and compared (see "5-variant
+comparison (results)"). Real cloud/on-device calls are NOT yet verified
+end-to-end — they need the App Check debug token registered in the console
+AND a networked browser. This file records what is mock vs real, what
+phase 2 needs, known limitations, and the 5-variant proposal required by
+the standing rule (at least 5 substantially different versions, compared
+and tested, before settling).
 
 ## What is mock vs real
 
@@ -140,8 +142,11 @@ with no regressions; lint 0 errors (same 10 documented warnings).
       (unavailable state — the app must still work as a notes app).
 - [ ] Deploy to Firebase Hosting (or another static host) and verify on
       the real domain, including App Check enforcement.
-- [ ] Build + compare the 5 variants below; pick the strongest (or a
-      hybrid) by the judging criteria.
+- [x] Build + compare the 5 variants below; pick the strongest (or a
+      hybrid) by the judging criteria. — DONE 2026-11-24, see "5-variant
+      comparison (results)". Recommendation: merge V5 (vault home) +
+      V2 (mood dashboard) as the submission; the merge (v6) is NOT built
+      yet — see the merge spec in that section.
 - [ ] Demo video (≤ 3 min) recorded with the **real** provider in a
       compliant Chrome build; script approved before recording.
 - [ ] GitHub public repo + completed Devpost submission (video URL, demo
@@ -159,11 +164,12 @@ with no regressions; lint 0 errors (same 10 documented warnings).
 3. **Photo storage is data URLs.** Fine for a demo and for a handful of
    photos; a production app would store Blobs. The 5 MB limit keeps this
    safe.
-4. **Lint: 10 non-blocking warnings, 0 errors.** All are intentional
-   patterns flagged by the React Compiler rules:
-   - 5× `preserve-manual-memoization` — callbacks deliberately depend on
-     `selected?.id` rather than the whole `selected` object, so they
-     don't churn when note content changes.
+4. **Lint: 9 non-blocking warnings, 0 errors.** (Was 10 in phase 1/2a;
+   the refactor dropped one `preserve-manual-memoization` warning.) All
+   are intentional patterns flagged by the React Compiler rules:
+   - 4× `preserve-manual-memoization` — callbacks in `useVault`
+     deliberately depend on `selected?.id` rather than the whole
+     `selected` object, so they don't churn when note content changes.
    - 4× `set-state-in-effect` — syncing state to external changes
      (selection change, modal open, initial availability refresh).
    - 1× `purity` — `new Date()` inside a `useMemo` in `MoodTimeline`
@@ -275,6 +281,184 @@ most. Build order follows the numbering; V1 (current) is the baseline.
 4. Pick the winner, or merge the strongest elements (e.g. V2's dashboard
    landing + V5's privacy score) into the final submission. Record the
    decision and the scores in this file.
+
+## 5-variant comparison (results, 2026-11-24)
+
+### Variant mechanism
+
+- One build, one switch: `VITE_VARIANT=v1|v2|v3|v4|v5` (default `v1`).
+  `src/App.tsx` renders the selected variant from
+  `src/variants/vN/VariantN.tsx` and adds `data-variant="<id>"` to the
+  root (the walkthrough asserts it). Build any variant with, e.g.:
+  `VITE_VARIANT=v2 VITE_AI_PROVIDER=mock npm run build`. Shell env vars
+  override `.env`, so the mock provider can be forced at build time
+  without touching `.env` (verified: the mock banner appears in every
+  walkthrough run).
+- Shared core: all five variants run on one hook, `src/hooks/useVault.ts`
+  (extracted from the old `App.tsx` — notes, autosave draft, device
+  model, all AI actions, consent flow, photos, ledger). Variants differ
+  ONLY in layout and navigation — never in data, AI behavior, or the
+  privacy contract. Shared view pieces: `src/variants/chrome.tsx`
+  (header/footer), `src/variants/NotesWorkspace.tsx` (V1 three-column
+  view, reused by V5), `src/variants/EditorOverlay.tsx` (focused
+  editor + AI panel, used by V2/V4).
+- New shared capabilities added for the variants (all in the shared
+  layer, available to every variant): note-parameterized AI actions
+  (`runOnDeviceForNote`, `requestCloudForNote`, `describePhotoForNote`
+  — needed by V4's inline feed cards), `clearCloudResults` in `db.ts`
+  (V5's per-entry control; the ledger keeps its entries — the audit
+  trail is append-only), and clickable calendar days in `MoodTimeline`
+  (optional `onDayClick` prop, used by V2).
+- NOTE: all five variants ship in one bundle (the switch is runtime).
+  Before final submission, delete the losing variants (or keep only the
+  winner) so the shipped bundle contains only the submitted UX.
+
+### What each variant is
+
+- **V1 "Journal-first" (baseline):** three columns — note list | editor |
+  AI panel; tabs Notes / Mood timeline / Privacy ledger. Everything
+  visible at once; the privacy story is present (badges + ledger) but
+  not leading.
+- **V2 "Mood-first dashboard":** home is a dashboard — "How have your
+  days felt?" + stat cards + mood chart + clickable calendar heatmap +
+  recent insight cards; entries open in a focused editor overlay.
+- **V3 "Focused writer":** single centered column, full-width serif
+  editor; note list in a slide-over drawer; AI in an on-demand bottom
+  sheet ("Insights" button, header + floating). Calmest writing
+  surface; best mobile story.
+- **V4 "Timeline feed":** notes as chronological cards with inline
+  insight cards (summary/mood/deep summary/suggestions, each badged)
+  and per-card AI buttons; the ledger becomes a live counts strip +
+  filter chips (All / On-device / Cloud / Not yet analyzed) instead of
+  a separate view; editor opens as an overlay.
+- **V5 "Vault-first":** home is the vault — a privacy-score ring
+  ("100% of sensitive insights stayed on this device"), on-device
+  status, per-entry privacy controls (badges + "Remove cloud results"
+  with two-step confirm), and the full ledger as the hero section;
+  notes are one tap behind ("Open vault", V1 workspace).
+
+### Scores (1–5 per official criterion + first-30-seconds impression)
+
+Same seed data, same scripted walkthrough for each (see
+`tests/variants-walkthrough.mjs`); scores are comparative, judged
+against the official criteria and the winner research in RESEARCH.md.
+First-30-seconds scores come from the home screenshots
+(`/tmp/mindvault-vN-home.png`).
+
+| Variant | Technical | Design | Impact | Idea | Total /20 | First 30s /5 |
+|---|---:|---:|---:|---:|---:|---:|
+| V1 Journal-first | 4 | 4 | 4 | 3 | 15 | 3 |
+| V2 Mood-first dashboard | 4 | 5 | 4 | 4 | 17 | 5 |
+| V3 Focused writer | 4 | 4 | 3 | 3 | 14 | 2 |
+| V4 Timeline feed | 5 | 4 | 4 | 4 | 17 | 4 |
+| V5 Vault-first | 4 | 4 | 5 | 5 | 18 | 5 |
+
+Justifications (one line per score):
+
+- **V1** — Technical 4: complete and correct, but the baseline adds
+  nothing beyond the core. Design 4: clean, familiar, everything
+  visible — but conventional. Impact 4: the story is there via badges
+  and ledger, but you have to look for it. Idea 3: reads as "the
+  official example" at first glance; privacy is supporting, not
+  leading. First 30s 3: "a nice notes app"; privacy visible in badges
+  only if you look.
+- **V2** — Technical 4: same core + clickable calendar + overlay editor.
+  Design 5: the most striking first screen — chart + heatmap showpiece,
+  best visual hook. Impact 4: mood as the front door makes the
+  self-reflection value immediate and gives a reason to return daily.
+  Idea 4: reframing mood as the product's front door is a genuine
+  reframing, but privacy is still supporting. First 30s 5: the chart +
+  "How have your days felt?" hooks immediately.
+- **V3** — Technical 4: same core; drawer/sheet are standard patterns.
+  Design 4: calmest, best writing surface and mobile story — but the AI
+  is hidden until clicked. Impact 3: the differentiator is buried; a
+  judge in a hurry sees a notes app. Idea 3: hides the idea; the
+  on-demand sheet is deliberate but the privacy story isn't visible.
+  First 30s 2: beautiful editor, but nothing says "hybrid AI" or
+  "privacy" — the differentiator is one click away.
+- **V4** — Technical 5: the most additional engineering —
+  note-parameterized AI actions, inline insight cards, ledger-as-filter
+  + live strip. Design 4: coherent modern feed, badges everywhere in
+  context; the top of the feed is a bit panel-heavy. Impact 4: badges
+  in context make the privacy story tangible while browsing; the ledger
+  filter is a novel interaction. Idea 4: ledger-as-filter is a
+  genuinely novel take on "privacy verifiable"; the feed makes badges
+  unavoidable. First 30s 4: ledger strip + filter chips + on-device
+  panel all visible immediately; slightly busy.
+- **V5** — Technical 4: same core + privacy score + per-entry cloud
+  removal; solid but less new machinery than V4. Design 4: the vault
+  home is striking; notes behind one tap is a deliberate trade-off.
+  Impact 5: the privacy score + "100% stayed on device" is the most
+  quotable, memorable articulation of the value; per-entry controls
+  make it actionable. Idea 5: leads with the differentiator — the idea
+  IS the home screen; the privacy score is a memorable, original
+  mechanism. First 30s 5: the idea lands in 5 seconds.
+
+### Recommendation: merge V5 + V2 (NOT built yet — needs a decision)
+
+**Winner: a V5 + V2 merge (call it v6).** V5 has the highest total
+(18/20) and the strongest Idea/Impact; V2 has the best Design and an
+equal first-30-seconds score. The merge takes both:
+
+- **Home = V5 vault** (privacy score ring + on-device status +
+  per-entry controls + ledger hero) — the idea lands in the first 5
+  seconds, and it is the most quotable thing a judge can take away.
+- **Second tab = V2 dashboard** (mood chart + clickable calendar +
+  recent insights) instead of the plain mood view — the visual
+  showpiece, and the "reason to come back daily".
+- **Notes tab = V1 three-column workspace** (already shared as
+  `NotesWorkspace`) — the complete, familiar writing experience.
+- Tabs: Vault / Notes / Dashboard. No separate ledger tab (the ledger
+  is the vault home's hero section).
+- Optional later fold-in (only if time allows): V4's inline insight
+  badges on the notes list — the feed idea is good, but the merge
+  already covers the differentiator; don't let it bloat the scope.
+- V3's focused-writer lesson to keep: generous whitespace and the serif
+  reading surface — already present in the shared editor; no separate
+  V3 element needed in the merge.
+
+### Test results (5-variant comparison, 2026-11-24)
+
+- `tests/variants-walkthrough.mjs` (Playwright, mock provider, fresh
+  browser context per run, same scripted walkthrough each time):
+  **V1 16/16, V2 18/18, V3 18/18, V4 19/19, V5 21/21 — all pass.**
+  Every variant verified end-to-end: shell + variant id + mock banner,
+  seeded notes, on-device enable + summary (ON-DEVICE badge) +
+  sentiment, consent modal (excerpt + checkbox-gated confirm) + cloud
+  deep summary (IN-CLOUD badge), ledger check, mood chart, zero
+  pageerrors. Variant-specific checks: V2 calendar-day overlay opening,
+  V3 bottom-sheet + drawer navigation, V4 ledger filters (cloud filter
+  keeps analyzed entries, unanalyzed filter drops them), V5 privacy
+  score 100 before/after cloud actions + per-entry cloud-result removal.
+- `npm run test:smoke` (V1, fixed — see below): **17/17 pass.**
+- `npm run test:db`: ALL DB TESTS PASSED. `npm run build` passes for
+  every variant (V1 mock bundle ~446 KB JS / ~134 KB gzip; all variants
+  share one bundle). `npm run lint`: 0 errors, 9 warnings (see "Known
+  limitations" §4).
+- Screenshots: `/tmp/mindvault-vN-home.png` (first screen) and
+  `/tmp/mindvault-vN.png` (end of walkthrough) for N = 1..5.
+- Two test bugs found and fixed during the comparison (both were test
+  bugs, not app bugs):
+  1. `getByText('ON-DEVICE')` substring-matches the "On-device AI"
+     panel heading, so the wait returned before the summary existed
+     (caught by V3, where the summary was still "Summarizing…").
+     Fixed in both `smoke.mjs` and `variants-walkthrough.mjs`: the
+     completion signal is now the button flipping to "Re-summarize" /
+     "Re-analyze mood", and badge checks use `{ exact: true }`.
+  2. In V4 the feed card shows the note body, so waiting on the summary
+     text is not a completion signal there — same button-flip fix
+     covers it.
+  3. V5's two-step "Remove cloud results" confirm: the test's row
+     locator filtered on the button's first label, which disappears
+     after the first click. Fixed by scoping the row to the controls
+     section instead.
+- Two visual fixes from the screenshot review (both in shared code):
+  1. `MoodTimeline` x-axis date labels were clipped at the chart edges
+     ("Nov 23, 2…"). First label now anchors `start`, last anchors
+     `end` (single point stays centered).
+  2. V4 feed excerpts could leave the "…" dangling on its own line
+     after a paragraph break; the excerpt is now `trimEnd()`ed before
+     the ellipsis is appended.
 
 ## Test results (phase 1, 2026-11-24)
 

@@ -119,6 +119,21 @@ export async function saveAnalysis(
   });
 }
 
+/**
+ * Per-entry privacy control (V5 vault-first): delete a note's cloud
+ * results (deep summary + writing suggestions). Ledger entries are NOT
+ * removed — the audit trail is append-only, so deleting results never
+ * erases the record that a cloud call happened.
+ */
+export async function clearCloudResults(id: number): Promise<void> {
+  const note = await db.notes.get(id);
+  if (!note) return;
+  const analysis: NoteAnalysis = { ...note.analysis };
+  delete analysis.deepSummary;
+  delete analysis.suggestions;
+  await db.notes.update(id, { analysis, updatedAt: Date.now() });
+}
+
 // ---------------------------------------------------------------------------
 // Photos (JPEG/PNG only — the formats on-device inference accepts)
 // ---------------------------------------------------------------------------
