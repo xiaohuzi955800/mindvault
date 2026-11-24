@@ -1,18 +1,23 @@
 # MindVault — Phase 1 + 2a notes
 
 Status: **2026-11-24, phase 2a complete + 5-variant comparison done + v6
-merged submission version built (default).**
+merged submission version built (default) + cloud model fix
+(gemini-3.8-flash, 2026-11-24).**
 Phase 1 (mock provider, fully working app) is done and verified; phase 2a
 wired in the real Firebase AI Logic provider + App Check (see "Phase 2a"
 below); the 5 UI variants are built and compared (see "5-variant
 comparison (results)"); the winner is merged into **v6** (V5 vault +
 V2 dashboard + V1 notes), which is now the default build (see "v6 —
-merged submission version"). Real cloud/on-device calls are NOT yet
-verified end-to-end — they need the App Check debug token registered in
-the console AND a networked browser. This file records what is mock vs
-real, what phase 2 needs, known limitations, and the 5-variant proposal
-required by the standing rule (at least 5 substantially different
-versions, compared and tested, before settling).
+merged submission version"). A live production test on 2026-11-24 (V1
+build on mindvault-2026.web.app) verified load, the consent modal, and
+App Check — but cloud calls 404'd because Google had retired
+gemini-2.5-flash for new users; the cloud model is now
+gemini-3.8-flash (see "Cloud model change" below). Live re-verification
+of the new model on the production domain is still pending after
+redeploy. This file records what is mock vs real, what phase 2 needs,
+known limitations, and the 5-variant proposal required by the standing
+rule (at least 5 substantially different versions, compared and tested,
+before settling).
 
 ## What is mock vs real
 
@@ -507,6 +512,44 @@ navigation (~100 lines):
   entries, so the check was racy (smoke failed once on "ledger lists
   the on-device summary", then passed on re-run). Both tests now wait
   for the entry text itself before asserting.
+
+## Cloud model change: gemini-2.5-flash retired → gemini-3.8-flash (2026-11-24)
+
+- What happened: live production test on 2026-11-24
+  (https://mindvault-2026.web.app, V1 build) — the app loaded, the
+  consent modal worked exactly as designed, and App Check passed
+  (requests reached Vertex AI), but every cloud call failed with a
+  real 404 from Google: `AI: Error fetching from
+  https://firebasevertexai.googleapis.com/v1beta/projects/mindvault-2026/models/gemini-2.5-flash:generateContent:
+  [404] This model models/gemini-2.5-flash is no longer available to
+  new users. Please update your code to use models/gemini-3.8-flash
+  ...` (the error also recommends the Interactions API; not adopted —
+  the direct fix is the model name).
+- Fix: `FIREBASE_CLOUD_MODEL` is now `gemini-3.8-flash`
+  (`src/lib/ai/firebaseProvider.ts`); the mock mirror
+  `MOCK_CLOUD_MODEL` is now `Gemini 3.8 Flash (simulated)` — the
+  "(simulated)" suffix is unchanged, mock results are still simulated;
+  the mock just simulates the current model now. Docs updated
+  (ARCHITECTURE.md).
+- Seed re-label (same change): seeded analyses used to reuse the mock
+  "(simulated)" labels, which shipped in the real firebase build and
+  made production look fake ("Gemini Nano (simulated)" on the live
+  site). Seed now has its own labels — `Gemini Nano (sample)` /
+  `Gemini 3.8 Flash (sample)` (`SEED_ON_DEVICE_MODEL` /
+  `SEED_CLOUD_MODEL` in `src/lib/seed.ts`). Accurate in both modes:
+  they are sample data, not model output.
+- No test asserted the old model names (verified by grep), so no test
+  changes were needed.
+- Test results for this fix (2026-11-24): mock build pass (~447.55 KB
+  JS / 134.32 KB gzip); firebase build pass (~492.85 KB JS / 147.63 KB
+  gzip, 17 precache entries) — built bundle contains
+  `gemini-3.8-flash`, zero `gemini-2.5-flash`; smoke 17/17 pass; v6
+  walkthrough 23/23 pass; `test:db` ALL PASS; lint 0 errors, same 9
+  documented warnings.
+- Still open: live cloud calls with gemini-3.8-flash must be
+  re-verified on the production domain after redeploy — this VM's
+  headless browser has no internet, so the new model name is verified
+  by build + grep only until then.
 
 ### Test results (5-variant comparison, 2026-11-24)
 

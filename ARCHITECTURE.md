@@ -28,7 +28,7 @@
 │            ├─ MockProvider (phase 1, default)                │
 │            └─ FirebaseProvider (phase 2, firebase/ai)        │
 │                  ├─ Gemini Nano on-device (ONLY_ON_DEVICE)   │
-│                  └─ Gemini 2.5 Flash in cloud (ONLY_IN_CLOUD)│
+│                  └─ Gemini 3.8 Flash in cloud (ONLY_IN_CLOUD)│
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -180,8 +180,8 @@ which provider is behind the interface.
 | Diary summary | Device (Gemini Nano) | `only_on_device` | None needed — nothing leaves the device |
 | Sentiment analysis | Device (Gemini Nano) | `only_on_device` | None needed |
 | Photo description | Device (Gemini Nano) | `only_on_device` | None needed |
-| Deep summary | Cloud (Gemini 2.5 Flash) | `only_in_cloud` | Per-request consent modal |
-| Writing suggestions | Cloud (Gemini 2.5 Flash) | `only_in_cloud` | Per-request consent modal |
+| Deep summary | Cloud (Gemini 3.8 Flash) | `only_in_cloud` | Per-request consent modal |
+| Writing suggestions | Cloud (Gemini 3.8 Flash) | `only_in_cloud` | Per-request consent modal |
 
 ### Why never `prefer_on_device`
 

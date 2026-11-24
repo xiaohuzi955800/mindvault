@@ -5,15 +5,17 @@
  * to "today" so the mood timeline always looks alive.
  *
  * All seed content is original writing for this project. The pre-computed
- * analyses are labelled with the simulated model name, matching what the
- * mock provider would produce for the same text.
+ * analyses are labelled "(sample)" — they are sample data written for the
+ * demo, not model output. They deliberately do NOT use the mock provider's
+ * "(simulated)" labels: the seed ships in the real firebase build too,
+ * where "(simulated)" would make the production app look fake.
  */
-import {
-  MOCK_CLOUD_MODEL,
-  MOCK_ON_DEVICE_MODEL,
-} from './ai/mockProvider';
 import { db, recordLedgerEntry } from './db';
 import type { NoteAnalysis, StoredPhoto } from './db';
+
+/** Model labels for the pre-computed seed analyses (sample data, not output). */
+export const SEED_ON_DEVICE_MODEL = 'Gemini Nano (sample)';
+export const SEED_CLOUD_MODEL = 'Gemini 3.8 Flash (sample)';
 
 function daysAgo(days: number, hour: number, minute = 0): number {
   const date = new Date();
@@ -41,7 +43,7 @@ function seedEntries(): SeedEntry[] {
         summary: {
           source: 'ON_DEVICE',
           text: 'A slow, restorative Sunday: tea by the window, finishing a long-read novel, and a quiet walk in the park without headphones.',
-          model: MOCK_ON_DEVICE_MODEL,
+          model: SEED_ON_DEVICE_MODEL,
           createdAt: daysAgo(12, 10, 40),
         },
         sentiment: {
@@ -49,7 +51,7 @@ function seedEntries(): SeedEntry[] {
           score: 62,
           label: 'Bright',
           keywords: ['calm', 'grateful', 'quiet'],
-          model: MOCK_ON_DEVICE_MODEL,
+          model: SEED_ON_DEVICE_MODEL,
           createdAt: daysAgo(12, 10, 40),
         },
       },
@@ -63,7 +65,7 @@ function seedEntries(): SeedEntry[] {
         summary: {
           source: 'ON_DEVICE',
           text: 'Dreading Thursday’s team presentation despite knowing the material well; rehearsal keeps stalling at the same slide, and asking Mei for a practice run feels like the kindest next step.',
-          model: MOCK_ON_DEVICE_MODEL,
+          model: SEED_ON_DEVICE_MODEL,
           createdAt: daysAgo(8, 21, 30),
         },
         sentiment: {
@@ -71,7 +73,7 @@ function seedEntries(): SeedEntry[] {
           score: -48,
           label: 'Low',
           keywords: ['anxious', 'dread', 'worried'],
-          model: MOCK_ON_DEVICE_MODEL,
+          model: SEED_ON_DEVICE_MODEL,
           createdAt: daysAgo(8, 21, 30),
         },
       },
@@ -85,7 +87,7 @@ function seedEntries(): SeedEntry[] {
         summary: {
           source: 'ON_DEVICE',
           text: 'A long, rainy commute home; tired in a way sleep does not fix, a missed call from Mum to return, and the small comfort of rain on the walk from the station.',
-          model: MOCK_ON_DEVICE_MODEL,
+          model: SEED_ON_DEVICE_MODEL,
           createdAt: daysAgo(4, 20, 5),
         },
         sentiment: {
@@ -93,7 +95,7 @@ function seedEntries(): SeedEntry[] {
           score: -12,
           label: 'Mixed',
           keywords: ['tired', 'rain', 'hopeful'],
-          model: MOCK_ON_DEVICE_MODEL,
+          model: SEED_ON_DEVICE_MODEL,
           createdAt: daysAgo(4, 20, 5),
         },
       },
@@ -108,7 +110,7 @@ function seedEntries(): SeedEntry[] {
         summary: {
           source: 'ON_DEVICE',
           text: 'The dreaded presentation went well — no lost places, two colleagues said the demo finally made the project click, and the manager called it "clear and confident".',
-          model: MOCK_ON_DEVICE_MODEL,
+          model: SEED_ON_DEVICE_MODEL,
           createdAt: daysAgo(1, 18, 52),
         },
         sentiment: {
@@ -116,13 +118,13 @@ function seedEntries(): SeedEntry[] {
           score: 74,
           label: 'Bright',
           keywords: ['proud', 'relieved', 'grateful'],
-          model: MOCK_ON_DEVICE_MODEL,
+          model: SEED_ON_DEVICE_MODEL,
           createdAt: daysAgo(1, 18, 52),
         },
         deepSummary: {
           source: 'IN_CLOUD',
           text: 'Looking at "A small win, finally" as a whole, the mood comes across as bright, and the thread running through it is proud, relieved, grateful. What stands out is the arc: the same presentation that caused dread a week ago became a moment of proof — preparation plus one kind rehearsal partner turned anxiety into confidence. If you keep writing, a monthly review could trace how these threads change. Nothing here is a diagnosis — just a mirror held up to your own words.',
-          model: MOCK_CLOUD_MODEL,
+          model: SEED_CLOUD_MODEL,
           createdAt: daysAgo(1, 19, 2),
           authorizedAt: daysAgo(1, 19, 1),
           charsSent: 0, // filled in below from the real content length
@@ -130,7 +132,7 @@ function seedEntries(): SeedEntry[] {
         suggestions: {
           source: 'IN_CLOUD',
           text: '1. Continue the thread: write two more sentences about proud — what happened right before, and what happened right after?\n2. Zoom out: this entry reads as bright. What would you want to remember about this feeling a month from now?\n3. Small step: end your next entry with one thing you are looking forward to, however small. Future-you will thank you.',
-          model: MOCK_CLOUD_MODEL,
+          model: SEED_CLOUD_MODEL,
           createdAt: daysAgo(1, 19, 3),
           authorizedAt: daysAgo(1, 19, 1),
           charsSent: 0, // filled in below from the real content length

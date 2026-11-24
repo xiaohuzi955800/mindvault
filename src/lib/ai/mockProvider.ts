@@ -30,7 +30,7 @@ import type {
 } from './types';
 
 export const MOCK_ON_DEVICE_MODEL = 'Gemini Nano (simulated)';
-export const MOCK_CLOUD_MODEL = 'Gemini 2.5 Flash (simulated)';
+export const MOCK_CLOUD_MODEL = 'Gemini 3.8 Flash (simulated)';
 
 const SIMULATE_UNAVAILABLE_KEY = 'mindvault.simulateUnavailable';
 const DOWNLOAD_STEPS = [8, 19, 34, 47, 61, 74, 86, 95, 100];

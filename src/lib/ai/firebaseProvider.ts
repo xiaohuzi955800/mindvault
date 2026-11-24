@@ -13,8 +13,11 @@
  *    to the cloud. That silent fallback would violate the product's core
  *    privacy promise.
  *  - Cloud model: `getGenerativeModel(ai, { mode: InferenceMode.ONLY_IN_CLOUD,
- *    inCloudParams: { model: 'gemini-2.5-flash' } })` — free-tier text model,
- *    so core features never depend on paid quota.
+ *    inCloudParams: { model: 'gemini-3.8-flash' } })` — free-tier text model,
+ *    so core features never depend on paid quota. (Was gemini-2.5-flash
+ *    until 2026-11-24, when a live production test showed Google had
+ *    retired it for new users — 404, "no longer available to new users",
+ *    recommending gemini-3.8-flash. See NOTES.md.)
  *  - Every response's `inferenceSource` is read and surfaced honestly in the
  *    UI badges. If the SDK ever reported IN_CLOUD for an on-device call, the
  *    badge would say so — privacy here is verifiable, not assumed.
@@ -70,7 +73,7 @@ import type {
 } from './types';
 
 export const FIREBASE_ON_DEVICE_MODEL = 'Gemini Nano';
-export const FIREBASE_CLOUD_MODEL = 'gemini-2.5-flash';
+export const FIREBASE_CLOUD_MODEL = 'gemini-3.8-flash';
 
 const ON_DEVICE_UNAVAILABLE_GUIDANCE =
   'On-device AI is not available in this browser. It needs Chrome for desktop v139+ with the Prompt API enabled (chrome://flags/#prompt-api-for-gemini-nano). Your notes still work fully — only the on-device insights are paused, and nothing is sent to the cloud.';
