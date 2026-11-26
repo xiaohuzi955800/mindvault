@@ -75,22 +75,18 @@ judges can click through every view immediately.
 | `npm run dev` | Vite dev server (port 5173) |
 | `npm run build` | `tsc` (strict) + Vite production build + PWA assets |
 | `npm run preview` | Serve `dist/` on port 4173 |
-| `npm run lint` | oxlint (0 errors; 10 documented non-blocking warnings — see NOTES.md) |
+| `npm run lint` | oxlint (0 errors; 9 documented non-blocking warnings — see NOTES.md) |
 | `npm run test:db` | Node tests: Dexie store, seed data, mock-provider privacy contract |
 | `npm run test:smoke` | Playwright smoke test against `npm run preview` (needs a built `dist/`; tests the default v6 build) |
-| `npm run test:variants` | Scripted walkthrough for one UI variant: `node tests/variants-walkthrough.mjs v2` (needs the matching `VITE_VARIANT` build + `npm run preview`; v6 is the default, no `VITE_VARIANT` needed) |
+| `npm run test:variants` | Scripted walkthrough for the shipped v6 UI: `node tests/variants-walkthrough.mjs v6` (needs a mock build + `npm run preview`) |
 | `node tests/probe-firebase.mjs` | Firebase-mode probe: App Check debug-token capture, on-device availability probe, graceful-failure check (needs `npm run dev` + a real `.env`; uses a persistent Chromium profile so the debug token stays valid across runs) |
 
 ## UI variants (5 compared, merged into v6, 2026-11-24)
 
-All variants run on the same shared core (`useVault` — data, AI,
-privacy model) and differ only in layout and navigation. Select one with
-`VITE_VARIANT` at build time (default `v6`, the merged submission
-version):
-
-```bash
-VITE_VARIANT=v2 VITE_AI_PROVIDER=mock npm run build   # mood-first dashboard
-```
+All five compared variants ran on the same shared core (`useVault` — data, AI,
+privacy model) and differed only in layout and navigation. The merged v6 is
+the only variant that ships now — v1–v5 were removed from the bundle on
+2026-11-26; their descriptions below are the comparison record.
 
 - **v6 Merged submission version (default)**: Vault home (privacy score
   + ledger hero, from V5) + Notes workspace (three columns, from V1) +
@@ -111,8 +107,8 @@ Full scores and the merge decision are in
 [NOTES.md](NOTES.md#5-variant-comparison-results-2026-11-24); the v6
 build and its test results are in
 [NOTES.md](NOTES.md#v6--merged-submission-version-built-2026-11-24-now-the-default).
-Before submission, the losing variants (v1–v5) will be removed so the
-shipped bundle contains only v6.
+The losing variants (v1–v5) were removed on 2026-11-26, so the shipped
+bundle contains only v6.
 
 ## Tech stack
 
@@ -186,7 +182,7 @@ Still to do:
 ```
 src/
   main.tsx            entry point, PWA service-worker registration
-  App.tsx             variant switch (VITE_VARIANT) + shared consent modal
+  App.tsx             renders v6 + shared consent modal
   index.css           Tailwind v4 theme (paper / teal / brass)
   components/         SourceBadge, OnDevicePanel, CloudConsentModal,
                       NoteList, NoteEditor, AiPanel, MoodTimeline,

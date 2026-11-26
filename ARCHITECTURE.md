@@ -20,7 +20,7 @@
 │ Browser (PWA shell, precached app shell only)                │
 │                                                              │
 │  React UI — v6 (default): Vault / Notes / Dashboard tabs;     │
-│  v1–v5 remain selectable via VITE_VARIANT (see NOTES.md)     │
+│  v1–v5 removed 2026-11-26 before submission (see NOTES.md)    │
 │      │                                                       │
 │      ├─ Dexie (IndexedDB) ─ notes, analyses, photos, ledger  │
 │      │                                                       │
@@ -206,9 +206,9 @@ with guidance (Chrome version / flags) instead of falling back.
 
 | Component | Responsibility |
 | --- | --- |
-| `App.tsx` | Variant switch (`VITE_VARIANT`, default v6) + shared consent modal; the variants own their tab navigation |
+| `App.tsx` | Renders v6 + shared consent modal; v6 owns the tab navigation |
 | `useVault` | Shared stateful core for all variants: notes, autosave draft, device model, all AI actions, consent flow, photos, ledger |
-| `variants/` | Shared view pieces (`VaultHome`, `DashboardView`, `NotesWorkspace`, `EditorOverlay`, `chrome`) + one view layer per variant (`v1/`…`v6/`) |
+| `variants/` | Shared view pieces (`VaultHome`, `DashboardView`, `NotesWorkspace`, `EditorOverlay`, `chrome`) + the v6 view layer (`v6/`); v1–v5 removed 2026-11-26 |
 | `NoteList` | Search filter, mood dots, per-note analysis indicators, entry count |
 | `NoteEditor` | Title/body editing, save state, photo attach/remove, two-step delete |
 | `AiPanel` | On-device + cloud insight sections, source badges, sentiment bar, keyword chips, error surface (`role="alert"`) |

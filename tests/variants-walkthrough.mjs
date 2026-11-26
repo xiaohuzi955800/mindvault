@@ -1,26 +1,28 @@
 /**
- * Scripted walkthrough for all six MindVault UI variants.
+ * Scripted walkthrough for the MindVault v6 UI (the shipped version).
  *
- * Same walkthrough, same seed data, every variant:
+ * Same seed data, one flow:
  *   open app → read a seeded note → enable on-device AI → create a note
  *   → on-device summary + mood → cloud deep summary (with consent) →
  *   check the Privacy Ledger → check the mood view.
- * Navigation differs per variant (that is the point), so each variant has
- * its own flow function; the checks are the same.
  *
- * Usage (one variant at a time — the build is variant-specific):
- *   VITE_VARIANT=v2 VITE_AI_PROVIDER=mock npm run build
+ * Usage:
+ *   VITE_AI_PROVIDER=mock npm run build
  *   npm run preview        # in another terminal (port 4173)
- *   node tests/variants-walkthrough.mjs v2
- * (v6 is the default — a plain build needs no VITE_VARIANT.)
+ *   node tests/variants-walkthrough.mjs v6
  *
- * Screenshots: /tmp/mindvault-vN-home.png (first screen) and
- * /tmp/mindvault-vN.png (end of walkthrough).
+ * History: five UI variants were compared on 2026-11-24 with their own
+ * flow functions; the losing variants (v1–v5) were removed from the
+ * bundle on 2026-11-26 before submission, and this script now covers
+ * v6 only.
+ *
+ * Screenshots: /tmp/mindvault-v6-home.png (first screen) and
+ * /tmp/mindvault-v6.png (end of walkthrough).
  */
 import fs from 'node:fs';
 import { chromium } from 'playwright-core';
 
-const VARIANT = process.argv[2] || process.env.VARIANT || 'v1';
+const VARIANT = process.argv[2] || process.env.VARIANT || 'v6';
 const BASE = process.env.SMOKE_BASE_URL || 'http://localhost:4173';
 const HOME = process.env.HOME || '/home/hatch';
 const CANDIDATES = [
@@ -130,181 +132,6 @@ async function checkMoodView(page) {
 // Per-variant flows
 // ---------------------------------------------------------------------------
 
-async function flowV1(page) {
-  await page.getByText('A quiet Sunday').first().waitFor({ timeout: 10000 });
-  check('seeded notes visible', true);
-  await enableDevice(page);
-  await page.getByRole('button', { name: '+ New entry' }).click();
-  await waitForEditorEmpty(page);
-  await fillNewNote(page);
-  await runOnDeviceIn(page);
-  await runCloudIn(page, page);
-  await page.getByRole('button', { name: 'Privacy ledger', exact: true }).click();
-  await checkLedgerView(page);
-  await page.getByRole('button', { name: 'Mood timeline', exact: true }).click();
-  await checkMoodView(page);
-}
-
-async function flowV2(page) {
-  // Dashboard is home: mood chart + heatmap + insight cards.
-  await page.getByText('How have your days felt?').waitFor({ timeout: 10000 });
-  check('dashboard home shows mood hero', true);
-  await checkMoodView(page);
-
-  // Calendar-driven navigation: click a day with an entry.
-  const dayButton = page.getByRole('button', { name: /open this entry/ }).first();
-  await dayButton.click();
-  await page.waitForFunction(
-    () => document.querySelector('#note-title')?.value !== '',
-    { timeout: 10000 },
-  );
-  check('calendar day opens the entry in an overlay editor', true);
-  await enableDevice(page);
-  await page.getByRole('button', { name: 'Done' }).click();
-
-  // Create a note from the header; it opens in the overlay.
-  await page.getByRole('button', { name: '+ New entry' }).click();
-  await waitForEditorEmpty(page);
-  await fillNewNote(page);
-  await runOnDeviceIn(page);
-  await runCloudIn(page, page);
-  await page.getByRole('button', { name: 'Done' }).click();
-
-  await page.getByRole('button', { name: 'Privacy ledger', exact: true }).click();
-  await checkLedgerView(page);
-  await page.getByRole('button', { name: 'Dashboard', exact: true }).click();
-  await checkMoodView(page);
-}
-
-async function flowV3(page) {
-  // Single-column editor is home, first note selected.
-  await page.locator('#note-content').waitFor({ timeout: 10000 });
-  check('focused editor is home', true);
-
-  // AI lives in the bottom sheet.
-  await page.getByRole('button', { name: 'Insights', exact: true }).first().click();
-  await page.getByRole('dialog', { name: 'AI insights' }).waitFor({ timeout: 5000 });
-  check('Insights bottom sheet opens', true);
-  await enableDevice(page);
-  await page.getByRole('button', { name: 'Close insights' }).click();
-
-  // Drawer navigation: create a note from the drawer.
-  await page.getByRole('button', { name: 'Open notes and navigation' }).click();
-  await page.getByRole('button', { name: '+ New entry' }).click();
-  await waitForEditorEmpty(page);
-  await fillNewNote(page);
-
-  await page.getByRole('button', { name: 'Insights', exact: true }).first().click();
-  const sheet = page.getByRole('dialog', { name: 'AI insights' });
-  await runOnDeviceIn(sheet);
-  await runCloudIn(sheet, page);
-  await page.getByRole('button', { name: 'Close insights' }).click();
-
-  await page.getByRole('button', { name: 'Open notes and navigation' }).click();
-  await page.getByRole('button', { name: 'Privacy ledger', exact: true }).click();
-  await checkLedgerView(page);
-  await page.getByRole('button', { name: 'Open notes and navigation' }).click();
-  await page.getByRole('button', { name: 'Mood timeline', exact: true }).click();
-  await checkMoodView(page);
-}
-
-async function flowV4(page) {
-  // Feed is home: ledger strip + filter chips + cards.
-  await page.getByText('Privacy ledger').first().waitFor({ timeout: 10000 });
-  check('feed home shows ledger strip', true);
-  await page.getByText('A quiet Sunday').first().waitFor({ timeout: 10000 });
-  check('seeded notes visible as feed cards', true);
-  check(
-    'ledger filter chips present',
-    (await page.getByRole('button', { name: 'Cloud insights' }).count()) === 1,
-  );
-
-  await enableDevice(page);
-
-  // Create a note via the overlay editor, then act on its feed card inline.
-  await page.getByRole('button', { name: '+ New entry' }).click();
-  await waitForEditorEmpty(page);
-  await fillNewNote(page);
-  await page.getByRole('button', { name: 'Done' }).click();
-
-  const card = page.locator('article', { hasText: NOTE_TITLE }).first();
-  await card.waitFor({ timeout: 10000 });
-  await runOnDeviceIn(card);
-  await runCloudIn(card, page);
-
-  // Ledger-as-filter: the cloud filter keeps the new card and the seeded
-  // cloud entry; the unanalyzed filter drops them both.
-  await page.getByRole('button', { name: 'Cloud insights' }).click();
-  check(
-    'cloud filter keeps the new entry',
-    await page.locator('article', { hasText: NOTE_TITLE }).first().isVisible(),
-  );
-  await page.getByRole('button', { name: 'Not yet analyzed' }).click();
-  check(
-    'unanalyzed filter drops the analyzed entry',
-    (await page.locator('article', { hasText: NOTE_TITLE }).count()) === 0,
-  );
-  await page.getByRole('button', { name: 'All entries' }).click();
-  check(
-    'ledger strip still shows zero silent uploads',
-    await page.getByText('0 silent uploads').first().isVisible(),
-  );
-
-  await page.getByRole('button', { name: 'Mood timeline', exact: true }).click();
-  await checkMoodView(page);
-}
-
-async function flowV5(page) {
-  // Vault is home: privacy score + ledger hero.
-  await page.getByText('Your vault, verified').waitFor({ timeout: 10000 });
-  check('vault home shows privacy dashboard', true);
-  check(
-    'privacy score states 100% of sensitive insights stayed on-device',
-    await page
-      .getByText('100% of sensitive insights stayed on this device')
-      .isVisible(),
-  );
-
-  await enableDevice(page);
-
-  // Open the vault → notes workspace.
-  await page.getByRole('button', { name: 'Open vault →' }).first().click();
-  await page.getByText('A quiet Sunday').first().waitFor({ timeout: 10000 });
-  check('notes workspace opens from the vault', true);
-
-  await page.getByRole('button', { name: '+ New entry' }).click();
-  await waitForEditorEmpty(page);
-  await fillNewNote(page);
-  await runOnDeviceIn(page);
-  await runCloudIn(page, page);
-
-  await page.getByRole('button', { name: 'Vault', exact: true }).click();
-  await checkLedgerView(page);
-  check(
-    'privacy score still 100 after cloud actions',
-    await page
-      .getByText('100% of sensitive insights stayed on this device')
-      .isVisible(),
-  );
-
-  // Per-entry privacy control: remove the seeded entry's cloud results.
-  // Scope to the controls section (the ledger below also lists this note).
-  const controls = page.locator('section[aria-label="Per-entry privacy controls"]');
-  const row = controls.locator('li', { hasText: 'A small win, finally' }).first();
-  await row.getByRole('button', { name: 'Remove cloud results' }).click();
-  await row.getByRole('button', { name: 'Click again to remove' }).click();
-  await page.waitForFunction(() => {
-    const rows = [...document.querySelectorAll('li')].filter((li) =>
-      li.textContent?.includes('A small win, finally'),
-    );
-    return rows.every((li) => !li.textContent?.includes('Remove cloud results'));
-  }, { timeout: 10000 });
-  check('per-entry control removes cloud results (two-step confirm)', true);
-
-  await page.getByRole('button', { name: 'Mood timeline', exact: true }).click();
-  await checkMoodView(page);
-}
-
 async function flowV6(page) {
   // Vault is home: privacy score + ledger hero.
   await page.getByText('Your vault, verified').waitFor({ timeout: 10000 });
@@ -375,12 +202,12 @@ async function flowV6(page) {
   check('calendar day opens the entry in the Notes tab', true);
 }
 
-const FLOWS = { v1: flowV1, v2: flowV2, v3: flowV3, v4: flowV4, v5: flowV5, v6: flowV6 };
+const FLOWS = { v6: flowV6 };
 
 async function main() {
   const flow = FLOWS[VARIANT];
   if (!flow) {
-    console.error(`Unknown variant "${VARIANT}". Use v1..v6.`);
+    console.error(`Unknown variant "${VARIANT}". Only v6 is shipped.`);
     process.exit(2);
   }
   const executablePath = CANDIDATES.find((p) => fs.existsSync(p));

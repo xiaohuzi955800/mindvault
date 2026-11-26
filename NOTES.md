@@ -306,12 +306,13 @@ most. Build order follows the numbering; V1 (current) is the baseline.
 
 ### Variant mechanism
 
-- One build, one switch: `VITE_VARIANT=v1|v2|v3|v4|v5|v6` (default
-  `v6` since the merge — see "v6 — merged submission version").
-  `src/App.tsx` renders the selected variant from
-  `src/variants/vN/VariantN.tsx` and adds `data-variant="<id>"` to the
-  root (the walkthrough asserts it). Build any variant with, e.g.:
-  `VITE_VARIANT=v2 VITE_AI_PROVIDER=mock npm run build`. Shell env vars
+- One build, one switch (comparison-time mechanism, removed
+  2026-11-26): during the comparison, `VITE_VARIANT=v1|v2|v3|v4|v5|v6`
+  (default `v6` since the merge) selected the variant, and
+  `src/App.tsx` rendered it from `src/variants/vN/VariantN.tsx` with
+  `data-variant="<id>"` on the root (the walkthrough asserts it). After
+  the comparison the losing variants (v1–v5) were deleted and `App.tsx`
+  renders v6 directly, keeping `data-variant="v6"`. Shell env vars
   override `.env`, so the mock provider can be forced at build time
   without touching `.env` (verified: the mock banner appears in every
   walkthrough run).
@@ -480,11 +481,10 @@ navigation (~100 lines):
   the merge spec lists only chart + calendar + insights for the
   Dashboard tab). V2's UI is unchanged (its walkthrough re-run passes).
 - `src/App.tsx`: `VITE_VARIANT=v6` registered, and **v6 is now the
-  default** — a plain build with no `VITE_VARIANT` renders v6. v1–v5
-  are kept intact and still selectable (`VITE_VARIANT=v1` … `v5`);
-  deleting the losing variants is a pre-submission cleanup step (the
-  note in "Variant mechanism" above still applies — all six ship in
-  one bundle until then).
+  default** — a plain build with no `VITE_VARIANT` renders v6. The
+  losing variants (v1–v5) were removed from the bundle on 2026-11-26
+  (see "Variants v1–v5 removed"); their code survives in git history
+  and their screenshots in variants-screenshots/.
 
 ### Test results (v6, 2026-11-24)
 
@@ -607,10 +607,14 @@ the project dir (`../run-round.sh`, logs in `../round-logs/`).
 | 3 | pass | pass | 17/17 | 23/23 | pass | 0 errors, 9 warnings |
 | 4 | pass | pass | 17/17 | 23/23 | pass | 0 errors, 9 warnings |
 | 5 | pass | pass | 17/17 | 23/23 | pass | 0 errors, 9 warnings |
+| 6 | pass 493.64 KB | pass 448.34 KB | 17/17 | 23/23 | pass | 0 errors, 9 warnings |
+| 7 | pass 472.11 KB | pass 426.80 KB | 17/17 | 23/23 | pass | 0 errors, 9 warnings |
 
-Zero failures, zero flakes across all five rounds. Bundle hashes
-were identical every round (firebase `index-Be-S6NhN.js`, mock
-`index-D2psjJaq.js`) — builds are deterministic.
+Zero failures, zero flakes across all seven rounds. Bundle hashes were
+identical in rounds 1–5 (firebase `index-Be-S6NhN.js`, mock
+`index-D2psjJaq.js`) — builds are deterministic; round 7's hashes changed
+because the v1–v5 removal shrank the bundle (firebase 493.64 → 472.11 KB,
+mock 448.34 → 426.80 KB).
 
 ### Gap audit vs RESEARCH.md winner patterns
 
@@ -640,10 +644,22 @@ per-entry controls; seeded (sample) data; PWA.
   5 requests/minute; the current differentiation (verifiable privacy,
   ledger, per-request consent, structured mood timeline) is already
   strong. Revisit only if time remains after video + submission.
-- **Known, parent's steps:** remove v1–v5 from the bundle before
-  submission; demo video; GitHub + Devpost; real on-device
+- **Known, parent's steps:** ~~remove v1–v5 from the bundle before
+  submission~~ (done 2026-11-26, see "Variants v1–v5 removed"); demo
+  video; GitHub + Devpost; real on-device
   verification in compliant Chrome; full-notes export (documented
   nice-to-have, limitation #2).
+
+## Variants v1–v5 removed (2026-11-26)
+
+Pre-submission cleanup per the Devpost draft: `src/variants/v1/` … `v5/`
+deleted, `src/App.tsx` renders v6 directly (no `VITE_VARIANT` switch),
+`VITE_VARIANT` dropped from `src/vite-env.d.ts`, and the walkthrough
+script trimmed to the v6 flow only. Verified after removal: mock build,
+smoke 17/17, v6 walkthrough 23/23, DB tests, lint 0 errors, firebase
+build — all green; the shipped bundle contains only v6. The comparison
+record stays in "5-variant comparison" above, screenshots in
+variants-screenshots/, and the deleted code in git history.
 
 ## Cloud error placement fix (2026-11-24 evening)
 
